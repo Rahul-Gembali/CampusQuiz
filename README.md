@@ -1,12 +1,17 @@
 # CampusQuiz AI — Autonomous Institutional Assessment Engine
 ### Avanthi Institute of Engineering & Technology (AIET), Visakhapatnam
 
+[![GitHub Pages](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-success?style=flat-square&logo=github)](https://rahul-gembali.github.io/CampusQuiz/)
 [![Zero Build Step](https://img.shields.io/badge/Build-Zero--Build%20Single--File-emerald?style=flat-square)](#)
 [![Dual Theme](https://img.shields.io/badge/Design-Academic%20Crimson%20%26%20Obsidian-red?style=flat-square)](#)
 [![Offline PWA](https://img.shields.io/badge/PWA-100%25%20Offline%20First-blue?style=flat-square)](#)
 [![PRNG Determinism](https://img.shields.io/badge/PRNG-Mulberry32%20Seed--Deterministic-purple?style=flat-square)](#)
 [![Tests Passing](https://img.shields.io/badge/Verification-84%2F84%20Tests%20Passed-brightgreen?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+
+---
+
+> 🚀 **Live Production Application:** [https://rahul-gembali.github.io/CampusQuiz/](https://rahul-gembali.github.io/CampusQuiz/)
 
 ---
 
