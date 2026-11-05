@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CampusQuiz AI — Avanthi Institute of Engineering & Technology</title>
+  <title>CampusQuiz AI - Avanthi Institute of Engineering & Technology</title>
   
   <!-- Zero-Flicker Theme Bootstrapping (Defaults to Crisp Editorial White) -->
   <script>
@@ -88,6 +88,25 @@
 
   <style>
     /* High Performance Academic Minimalist Dual-Theme Styling */
+    * {
+      box-sizing: border-box;
+    }
+    .break-words {
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    /* Prevent text escaping cards and buttons */
+    button, input, textarea, select {
+      max-width: 100%;
+    }
+    .card-overflow-shield {
+      min-width: 0;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
     :root {
       color-scheme: light dark;
     }
@@ -221,14 +240,19 @@
           </svg>
         </div>
 
-        <div class="leading-tight">
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-xs sm:text-sm tracking-wide text-slate-900 dark:text-white uppercase">AVANTHI INSTITUTE OF ENGINEERING & TECHNOLOGY</span>
+        <div class="leading-tight min-w-0 flex-1 sm:flex-initial">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="font-bold text-xs sm:text-sm tracking-wide text-slate-900 dark:text-white uppercase truncate block">
+              <span class="sm:hidden">AIET &bull; CAMPUSQUIZ</span>
+              <span class="hidden sm:inline">AVANTHI INSTITUTE OF ENGINEERING & TECHNOLOGY</span>
+            </span>
           </div>
-          <div class="flex items-center gap-2 mt-0.5">
-            <span class="text-[10px] sm:text-[11px] font-mono tracking-wider font-semibold text-red-800 dark:text-red-400 uppercase">DEPARTMENT OF CSE &bull; CAMPUSQUIZ AI</span>
-            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-rose-50 text-red-800 border border-rose-200 dark:bg-rose-950/40 dark:text-red-300 dark:border-rose-900/40 font-mono">Institutional v7</span>
-            <span id="demoModeBadge" class="hidden inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/40 font-mono">DEMO MODE</span>
+          <div class="flex items-center gap-2 mt-0.5 flex-wrap min-w-0">
+            <span class="text-[10px] sm:text-[11px] font-mono tracking-wider font-semibold text-red-800 dark:text-red-400 uppercase truncate">
+              <span class="hidden xs:inline">DEPARTMENT OF CSE &bull; </span>CAMPUSQUIZ AI
+            </span>
+            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-rose-50 text-red-800 border border-rose-200 dark:bg-rose-950/40 dark:text-red-300 dark:border-rose-900/40 font-mono shrink-0">v7</span>
+            <span id="demoModeBadge" class="hidden inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/40 font-mono shrink-0">DEMO</span>
           </div>
         </div>
       </div>
@@ -271,7 +295,7 @@
               title="Click to view & edit your student profile"
             >
               <div id="headerStudentAvatar" class="w-5 h-5 rounded-full overflow-hidden bg-red-800 text-white text-[10px] flex items-center justify-center shrink-0">🎓</div>
-              <span id="headerStudentText">Rahul Gembali | 26A91A0500 | CSE-A</span>
+              <span id="headerStudentText" class="truncate max-w-[120px] sm:max-w-[200px]">Rahul Gembali | 26A91A0500 | CSE-A</span>
             </button>
             <button 
               type="button" 
@@ -287,7 +311,7 @@
           <div id="headerFacultyPill" class="hidden items-center gap-1 sm:gap-1.5">
             <div class="px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-red-800 dark:text-red-300 flex items-center gap-1.5 shadow-xs">
               <span>🏛️</span>
-              <span id="headerFacultyText">Faculty Admin | Dept of CSE</span>
+              <span id="headerFacultyText" class="truncate max-w-[120px] sm:max-w-[200px]">Faculty Admin | Dept of CSE</span>
             </div>
             <button 
               type="button" 
@@ -435,9 +459,9 @@
                 <input type="file" id="studentExamFileInput" accept=".json" class="hidden" onchange="CampusQuiz.handleStudentExamFile(this)">
               </div>
             </div>
-            <div id="studentLoadedExamBadge" class="hidden mt-3 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between text-emerald-800 dark:text-emerald-300 font-mono text-xs">
-              <span id="studentLoadedExamText"></span>
-              <button type="button" onclick="CampusQuiz.clearStudentLoadedExam()" class="text-xs hover:underline cursor-pointer font-bold ml-2 text-rose-600 dark:text-rose-400">Clear &times;</button>
+            <div id="studentLoadedExamBadge" class="hidden mt-3 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between text-emerald-800 dark:text-emerald-300 font-mono text-xs gap-2 min-w-0 overflow-hidden">
+              <span id="studentLoadedExamText" class="truncate min-w-0 flex-1"></span>
+              <button type="button" onclick="CampusQuiz.clearStudentLoadedExam()" class="text-xs hover:underline cursor-pointer font-bold shrink-0 text-rose-600 dark:text-rose-400">Clear &times;</button>
             </div>
           </div>
 
@@ -913,7 +937,7 @@
             <!-- Deadline-Derived Countdown Timer -->
             <div class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 flex items-center gap-2">
               <i data-lucide="clock" class="w-4 h-4 text-red-700 dark:text-red-400" id="hudTimerIcon"></i>
-              <span id="hudTimer" class="font-mono text-sm sm:text-base font-bold text-slate-900 dark:text-zinc-200 tracking-widest">15:00</span>
+              <span id="hudTimer" class="font-mono text-sm sm:text-base font-bold text-slate-900 dark:text-zinc-200 tracking-widest tabular-nums">15:00</span>
             </div>
 
             <button 
@@ -952,11 +976,11 @@
               <span class="text-xs text-slate-500 dark:text-zinc-500 font-mono">1.0 Mark</span>
             </div>
 
-            <div id="cardQuestionStem" class="text-base sm:text-lg text-slate-900 dark:text-zinc-100 font-medium leading-relaxed">
+            <div id="cardQuestionStem" class="text-base sm:text-lg text-slate-900 dark:text-zinc-100 font-medium leading-relaxed break-words overflow-hidden">
             </div>
 
-            <div id="cardCodeContainer" class="hidden my-4">
-              <pre class="bg-slate-950 border border-slate-800 text-emerald-400 p-3.5 sm:p-4 rounded-lg font-mono text-xs sm:text-sm overflow-x-auto leading-relaxed"><code id="cardCodeContent"></code></pre>
+            <div id="cardCodeContainer" class="hidden my-4 max-w-full overflow-hidden">
+              <pre class="bg-slate-950 border border-slate-800 text-emerald-400 p-3.5 sm:p-4 rounded-lg font-mono text-xs sm:text-sm overflow-x-auto leading-relaxed max-w-full"><code id="cardCodeContent" class="break-normal"></code></pre>
             </div>
 
             <div class="mt-6 space-y-3" id="cardOptionsContainer">
@@ -1133,10 +1157,9 @@
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center justify-center gap-3 mt-6 no-print">
-            <!-- Flaw 8: Scalable Offline Result Collection (60 to 2,000 Students) -->
-          <div class="p-4 rounded-xl bg-slate-50 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 space-y-3">
-            <div class="flex items-center justify-between border-b border-slate-200 dark:border-surface-800 pb-2">
+          <!-- Flaw 8: Scalable Offline Result Collection (60 to 2,000 Students) -->
+          <div class="w-full my-6 p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 space-y-3 text-left">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-surface-800 pb-2 flex-wrap gap-2">
               <div class="flex items-center gap-2">
                 <i data-lucide="qr-code" class="w-4 h-4 text-red-600 dark:text-red-400"></i>
                 <span class="font-semibold text-slate-800 dark:text-zinc-200 text-xs">Scalable Offline Result Submission</span>
@@ -1148,12 +1171,12 @@
                 <canvas id="resultQrCanvas" class="w-40 h-40 rounded border border-slate-100 dark:border-surface-800 bg-white"></canvas>
                 <span class="text-[10px] text-slate-500 dark:text-zinc-500 mt-1 font-mono">Camera Scannable Result QR</span>
               </div>
-              <div class="space-y-2">
+              <div class="space-y-2 min-w-0">
                 <div class="text-[11px] text-slate-600 dark:text-zinc-400">
                   For large classes: Copy your compact base64 result code and paste it directly into the instructor's submission form.
                 </div>
                 <div class="relative">
-                  <textarea id="resCompactString" readonly class="w-full h-20 p-2 text-[10px] font-mono rounded bg-slate-100 dark:bg-surface-900 border border-slate-300 dark:border-surface-800 text-slate-700 dark:text-zinc-300 select-all"></textarea>
+                  <textarea id="resCompactString" readonly class="w-full h-20 p-2 text-[10px] font-mono rounded-lg bg-slate-100 dark:bg-surface-900 border border-slate-300 dark:border-surface-800 text-slate-700 dark:text-zinc-300 select-all break-all resize-none"></textarea>
                 </div>
                 <button type="button" onclick="CampusQuiz.copyCompactResultCode()" class="w-full px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-surface-800 hover:bg-slate-300 dark:hover:bg-surface-700 text-slate-900 dark:text-white font-mono text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors">
                   <i data-lucide="copy" class="w-3.5 h-3.5"></i>
@@ -1163,7 +1186,9 @@
             </div>
           </div>
 
-          <button 
+          <!-- Action Buttons Clean Responsive Container -->
+          <div class="flex flex-wrap items-center justify-center gap-3 no-print">
+            <button 
               type="button" 
               id="btnDownloadResultJson"
               onclick="CampusQuiz.downloadResultJson()" 
@@ -1332,7 +1357,7 @@
             </div>
             <div>
               <label for="aiSubjectCode" class="block text-xs font-mono uppercase text-zinc-400 mb-1">Course Code & Subject</label>
-              <input type="text" id="aiSubjectCode" value="CS301PC — Data Structures & C Algorithms" class="w-full bg-surface-950 border border-surface-800 rounded-lg px-3 py-2 text-xs font-mono text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              <input type="text" id="aiSubjectCode" value="CS301PC - Data Structures & C Algorithms" class="w-full bg-surface-950 border border-surface-800 rounded-lg px-3 py-2 text-xs font-mono text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             </div>
           </div>
 
@@ -3665,7 +3690,7 @@
     }
 
     /**
-     * CampusQuiz AI — Master Client Engine
+     * CampusQuiz AI - Master Client Engine
      * Architecture: Vanilla ES6+ Modular Namespace
      * Phase 3: Multimodal Document Ingestion (PDF, Image, Transcript, Text), Chunker & Faculty Workspace
      */
@@ -4655,7 +4680,7 @@ int main() {
         const samplePages = [
           {
             pageNumber: 1,
-            text: "Avanthi Institute of Engineering & Technology — Department of Computer Science & Engineering. CS301PC: Data Structures & Algorithms. Unit III: Advanced Linear Data Structures and Tree Traversals. Course Objectives: Implement self-balancing binary search trees, understand pointer rebalancing, and evaluate time complexity under worst-case rotations.",
+            text: "Avanthi Institute of Engineering & Technology - Department of Computer Science & Engineering. CS301PC: Data Structures & Algorithms. Unit III: Advanced Linear Data Structures and Tree Traversals. Course Objectives: Implement self-balancing binary search trees, understand pointer rebalancing, and evaluate time complexity under worst-case rotations.",
             included: false // Pretend title page is excluded by default
           },
           {
@@ -5365,7 +5390,7 @@ Dynamic allocation using malloc returns void pointer. Always remember to check i
         const sampleText = 
 `AVANTHI INSTITUTE OF ENGINEERING & TECHNOLOGY
 DEPARTMENT OF COMPUTER SCIENCE & ENGINEERING
-COURSE: CS402PC — OPERATING SYSTEMS & DISTRIBUTED COMPUTING
+COURSE: CS402PC - OPERATING SYSTEMS & DISTRIBUTED COMPUTING
 LECTURE NOTE: SYSTEM DEADLOCK CHARACTERIZATION & PREVENTION
 
 Good morning students. Today we are analyzing Dijkstra's Banker's Algorithm and the four necessary conditions formulated by E. G. Coffman in 1971 for an OS deadlock to arise:
@@ -5467,7 +5492,7 @@ Architecturally, to prevent deadlocks from occurring, the kernel must guarantee 
         const sample = 
 `AVANTHI INSTITUTE OF ENGINEERING & TECHNOLOGY
 DEPARTMENT OF COMPUTER SCIENCE & ENGINEERING
-COURSE CODE: CS301PC — DATA STRUCTURES & C ALGORITHMS
+COURSE CODE: CS301PC - DATA STRUCTURES & C ALGORITHMS
 
 UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
 1. Mathematical induction and recursive recurrence relations: Master Theorem for Divide-and-Conquer.
@@ -5725,7 +5750,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           }
         }
 
-        // Flaw 2: Production Mode — Zero Backdoors (reject '1234', '1985', 'avanthi2026')
+        // Flaw 2: Production Mode - Zero Backdoors (reject '1234', '1985', 'avanthi2026')
         // First-Time Setup: If no master PIN has been set locally, prompt professor to create one
         if (!storedPasskey && (!facultyAdmin || !facultyAdmin.passwordHash)) {
           if (enteredPin.length >= 6) {
@@ -7223,7 +7248,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           
           const optionBtn = document.createElement('button');
           optionBtn.type = 'button';
-          optionBtn.className = `w-full text-left touch-target min-h-[56px] p-3.5 sm:p-4 rounded-xl border transition-all flex items-center justify-between gap-3 cursor-pointer ${
+          optionBtn.className = `w-full text-left touch-target min-h-[56px] p-3.5 sm:p-4 rounded-xl border transition-all flex items-start justify-between gap-3 cursor-pointer overflow-hidden ${
             isSelected 
               ? 'bg-rose-50/90 dark:bg-rose-950/25 border-red-600 dark:border-red-500 text-slate-900 dark:text-white ring-1 ring-red-600 dark:ring-red-500 shadow-sm' 
               : 'bg-white hover:bg-slate-50 dark:bg-surface-950 dark:hover:bg-surface-850 border-slate-200 dark:border-surface-800 text-slate-800 dark:text-zinc-200'
@@ -7231,17 +7256,17 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           optionBtn.onclick = () => selectOption(optIdx);
 
           optionBtn.innerHTML = `
-            <div class="flex items-center gap-3">
-              <span class="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-xs shrink-0 ${
+            <div class="flex items-start gap-3 min-w-0 flex-1">
+              <span class="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-xs shrink-0 mt-0.5 ${
                 isSelected 
                   ? 'bg-red-800 text-white' 
                   : 'bg-slate-100 dark:bg-surface-900 border border-slate-200 dark:border-surface-800 text-slate-600 dark:text-zinc-400'
               }">
                 ${opt.displayLetter}
               </span>
-              <span class="text-sm sm:text-base font-medium">${escapeHTML(opt.text)}</span>
+              <span class="text-sm sm:text-base font-medium leading-relaxed break-words min-w-0 flex-1">${escapeHTML(opt.text)}</span>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 shrink-0 ml-2 mt-1">
               <span class="hidden sm:inline-block px-1.5 py-0.5 rounded bg-slate-100 dark:bg-surface-900 border border-slate-200 dark:border-surface-800 text-[10px] font-mono text-slate-500 dark:text-zinc-400">
                 [${opt.displayLetter}]
               </span>
@@ -7357,7 +7382,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           const stripHeader = document.createElement('div');
           stripHeader.className = "flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-zinc-400 font-semibold px-0.5";
           stripHeader.innerHTML = `
-            <span>Section Strip ${chunkIdx + 1}: Q${startIdx + 1}–Q${endIdx}</span>
+            <span>Section Strip ${chunkIdx + 1}: Q${startIdx + 1}-Q${endIdx}</span>
             <span class="text-[9px] text-slate-400 dark:text-zinc-500 font-normal">${chunkAnswered}/${chunkQuestions.length} answered</span>
           `;
           stripContainer.appendChild(stripHeader);
@@ -7642,9 +7667,9 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             }`;
 
             itemEl.innerHTML = `
-              <div class="flex items-center justify-between border-b border-slate-200/80 dark:border-surface-800/60 pb-2">
-                <span class="font-mono font-bold text-slate-900 dark:text-zinc-200">Question ${item.displayNumber}: ${escapeHTML(item.topic || 'General')}</span>
-                <span class="px-2 py-0.5 rounded font-mono font-semibold text-[10px] ${
+              <div class="flex items-center justify-between border-b border-slate-200/80 dark:border-surface-800/60 pb-2 gap-2">
+                <span class="font-mono font-bold text-slate-900 dark:text-zinc-200 truncate min-w-0 flex-1">Question ${item.displayNumber}: ${escapeHTML(item.topic || 'General')}</span>
+                <span class="px-2 py-0.5 rounded font-mono font-semibold text-[10px] shrink-0 ${
                   item.isCorrect 
                     ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30' 
                     : item.chosenText === 'Unattempted'
@@ -7654,18 +7679,18 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
                   ${item.isCorrect ? 'CORRECT (+1.0)' : item.chosenText === 'Unattempted' ? 'UNATTEMPTED (0.0)' : 'INCORRECT (0.0)'}
                 </span>
               </div>
-              <p class="text-slate-900 dark:text-zinc-100 font-medium">${escapeHTML(item.stem)}</p>
+              <p class="text-slate-900 dark:text-zinc-100 font-medium break-words leading-relaxed">${escapeHTML(item.stem)}</p>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono pt-1">
-                <div class="p-2 rounded bg-white dark:bg-surface-950 border border-slate-200 dark:border-surface-800">
-                  <span class="text-slate-500 dark:text-zinc-500 text-[10px] block">YOUR RESPONSE</span>
-                  <span class="${item.isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'} font-semibold">${escapeHTML(item.chosenText)}</span>
+                <div class="p-2.5 rounded-lg bg-white dark:bg-surface-950 border border-slate-200 dark:border-surface-800 min-w-0 overflow-hidden">
+                  <span class="text-slate-500 dark:text-zinc-500 text-[10px] uppercase font-bold block">YOUR RESPONSE</span>
+                  <span class="${item.isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'} font-semibold break-words block">${escapeHTML(item.chosenText)}</span>
                 </div>
-                <div class="p-2 rounded bg-white dark:bg-surface-950 border border-slate-200 dark:border-surface-800">
-                  <span class="text-slate-500 dark:text-zinc-500 text-[10px] block">CORRECT ANSWER</span>
-                  <span class="text-emerald-700 dark:text-emerald-400 font-semibold">${escapeHTML(item.correctText)}</span>
+                <div class="p-2.5 rounded-lg bg-white dark:bg-surface-950 border border-slate-200 dark:border-surface-800 min-w-0 overflow-hidden">
+                  <span class="text-slate-500 dark:text-zinc-500 text-[10px] uppercase font-bold block">CORRECT ANSWER</span>
+                  <span class="text-emerald-700 dark:text-emerald-400 font-semibold break-words block">${escapeHTML(item.correctText)}</span>
                 </div>
               </div>
-              <div class="text-slate-600 dark:text-zinc-400 bg-white/80 dark:bg-surface-950/80 p-2.5 rounded border border-slate-200 dark:border-surface-800 text-[11px] leading-relaxed">
+              <div class="text-slate-600 dark:text-zinc-400 bg-white/80 dark:bg-surface-950/80 p-2.5 rounded-lg border border-slate-200 dark:border-surface-800 text-[11px] leading-relaxed break-words">
                 <strong class="text-slate-800 dark:text-zinc-200 font-semibold">Academic Rationale:</strong> ${escapeHTML(item.explanation || 'Verified')}
               </div>
             `;
@@ -8527,8 +8552,8 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             contextText = state.ingestion.activeChunks.map(c => c.text).join("\n\n").substring(0, 16000);
           } else {
             // Default built-in Avanthi CS301PC syllabus context
-            contextText = `Avanthi Institute of Engineering & Technology — Department of Computer Science & Engineering.
-Course: ${subjectCode} — ${quizTitle}.
+            contextText = `Avanthi Institute of Engineering & Technology - Department of Computer Science & Engineering.
+Course: ${subjectCode} - ${quizTitle}.
 Syllabus Core:
 1. Pointer arithmetic, pointer to pointers, array-pointer duality, dynamic memory allocation (malloc, calloc, realloc, free), dangling pointers, memory leaks.
 2. Abstract Data Types: Stacks (push, pop, peek, overflow/underflow, infix to postfix, function call stack), Queues (FIFO, circular queues, priority queues).
@@ -9124,7 +9149,7 @@ Output Format Schema (STRICT JSON ONLY):
                       }">
                         <input type="radio" name="curatedCorrect_${idx}" ${opt.isCorrect ? 'checked' : ''} onchange="CampusQuiz.setCorrectOption(${idx}, ${oIdx})" class="text-emerald-500 focus:ring-0 cursor-pointer">
                         <span class="w-5 text-center font-bold ${opt.isCorrect ? 'text-emerald-400' : 'text-zinc-500'}">[${letter}]</span>
-                        <input type="text" value="${escapeHTML(opt.text)}" oninput="CampusQuiz.updateOptionText(${idx}, ${oIdx}, this.value)" placeholder="Option ${letter} text" class="flex-1 bg-surface-950/80 border border-surface-800 rounded px-2 py-1 text-xs text-white focus:border-emerald-500">
+                        <input type="text" value="${escapeHTML(opt.text)}" oninput="CampusQuiz.updateOptionText(${idx}, ${oIdx}, this.value)" placeholder="Option ${letter} text" class="flex-1 min-w-0 bg-surface-950/80 border border-surface-800 rounded px-2 py-1 text-xs text-white focus:border-emerald-500">
                       </div>
                     `;
                   }).join('')}
@@ -10228,7 +10253,7 @@ Output Format Schema (STRICT JSON ONLY):
       function setupPwa() {
         try {
           const manifest = {
-            name: "CampusQuiz AI — Academic Examination Platform",
+            name: "CampusQuiz AI - Academic Examination Platform",
             short_name: "CampusQuiz",
             start_url: "./index.html",
             display: "standalone",
@@ -10924,37 +10949,37 @@ Output Format Schema (STRICT JSON ONLY):
             }
 
             return `
-              <div class="p-3.5 rounded-xl border ${cardBorder} space-y-2 text-xs font-mono">
+              <div class="p-3.5 rounded-xl border ${cardBorder} space-y-2 text-xs font-mono min-w-0 overflow-hidden">
                 <div class="flex items-center justify-between gap-2 flex-wrap">
-                  <span class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded bg-slate-200 dark:bg-surface-800 flex items-center justify-center text-[10px] font-mono">${idx + 1}</span>
-                    <span>Item ${item.displayNumber || (idx + 1)} &bull; ${escapeHTML(item.topic || 'General')}</span>
+                  <span class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 min-w-0 flex-1">
+                    <span class="w-5 h-5 rounded bg-slate-200 dark:bg-surface-800 flex items-center justify-center text-[10px] font-mono shrink-0">${idx + 1}</span>
+                    <span class="truncate">Item ${item.displayNumber || (idx + 1)} &bull; ${escapeHTML(item.topic || 'General')}</span>
                   </span>
-                  ${statusBadge}
+                  <div class="shrink-0">${statusBadge}</div>
                 </div>
 
-                <p class="text-slate-800 dark:text-zinc-200 text-xs font-sans leading-relaxed">${escapeHTML(item.stem)}</p>
+                <p class="text-slate-800 dark:text-zinc-200 text-xs font-sans leading-relaxed break-words">${escapeHTML(item.stem)}</p>
 
                 <!-- Comparison Cards: Student Chosen vs Correct Key -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
-                  <div class="p-2 rounded-lg bg-white dark:bg-surface-950 border ${isCorrect ? 'border-emerald-200 dark:border-emerald-900' : 'border-rose-200 dark:border-rose-900'} space-y-0.5">
+                  <div class="p-2.5 rounded-lg bg-white dark:bg-surface-950 border ${isCorrect ? 'border-emerald-200 dark:border-emerald-900' : 'border-rose-200 dark:border-rose-900'} space-y-0.5 min-w-0 overflow-hidden">
                     <span class="text-slate-500 dark:text-zinc-400 text-[10px] uppercase font-bold block">Candidate Selection</span>
-                    <span class="font-bold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}">
+                    <span class="font-bold break-words block ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}">
                       ${escapeHTML(item.chosenText || 'No answer recorded')}
                     </span>
                   </div>
 
-                  <div class="p-2 rounded-lg bg-white dark:bg-surface-950 border border-emerald-200 dark:border-emerald-900 space-y-0.5">
+                  <div class="p-2.5 rounded-lg bg-white dark:bg-surface-950 border border-emerald-200 dark:border-emerald-900 space-y-0.5 min-w-0 overflow-hidden">
                     <span class="text-slate-500 dark:text-zinc-400 text-[10px] uppercase font-bold block">Official Correct Answer</span>
-                    <span class="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                      <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i>
-                      <span>${escapeHTML(item.correctText || '')}</span>
+                    <span class="font-bold text-emerald-700 dark:text-emerald-400 flex items-start gap-1 break-words">
+                      <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5"></i>
+                      <span class="break-words min-w-0 flex-1">${escapeHTML(item.correctText || '')}</span>
                     </span>
                   </div>
                 </div>
 
                 ${item.explanation ? `
-                  <div class="p-2.5 rounded-lg bg-slate-100 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 text-[11px] font-sans text-slate-700 dark:text-zinc-300">
+                  <div class="p-2.5 rounded-lg bg-slate-100 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 text-[11px] font-sans text-slate-700 dark:text-zinc-300 break-words leading-relaxed">
                     <strong class="text-slate-900 dark:text-white font-mono text-[10px] uppercase block mb-0.5">Academic Rationale & Citation:</strong>
                     <span>${escapeHTML(item.explanation)}</span>
                   </div>
