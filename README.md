@@ -6,7 +6,7 @@
 [![Dual Theme](https://img.shields.io/badge/Design-Academic%20Crimson%20%26%20Obsidian-red?style=flat-square)](#)
 [![Offline PWA](https://img.shields.io/badge/PWA-100%25%20Offline%20First-blue?style=flat-square)](#)
 [![PRNG Determinism](https://img.shields.io/badge/PRNG-Mulberry32%20Seed--Deterministic-purple?style=flat-square)](#)
-[![Tests Passing](https://img.shields.io/badge/Verification-84%2F84%20Tests%20Passed-brightgreen?style=flat-square)](#)
+[![Tests Passing](https://img.shields.io/badge/Verification-111%2F111%20Tests%20Passed-brightgreen?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 ---
@@ -89,28 +89,38 @@ python -m http.server 8080
 
 ## 🧪 Automated Verification & QA Suite
 
-CampusQuiz includes an exhaustive, zero-dependency Node.js test suite with 84 automated assertions covering authentication, cohort gating, photo compression, PRNG determinism, and marksheet inspection:
+CampusQuiz includes an exhaustive, zero-dependency Node.js test suite with 111 automated assertions covering authentication, cohort gating, photo compression, PRNG determinism, marksheet inspection, demo mode isolation, salted hashing, offline QR generation, and two-file air-gapped grading:
 
 ```bash
-# Run Authentication & Cohort Targeting Test Suite (36 Tests)
+# Run Authentication & Cohort Targeting Test Suite (38 Tests)
 node test_auth_cohort.js
 
 # Run Profile Photo, 6 Groups & Marksheet Inspector Suite (48 Tests)
 node test_profile_marksheet.js
+
+# Run Architecture, Offline PWA & Flaw 6-17 Hardening Suite (25 Tests)
+node test_comprehensive_flaws.js
 ```
 
 ### Test Results Summary
 ```
 ===============================================================================
-TOTAL AUTOMATED ASSERTIONS: 84 | PASSED: 84 | FAILED: 0 (100% SUCCESS)
+TOTAL AUTOMATED ASSERTIONS: 111 | PASSED: 111 | FAILED: 0 (100% SUCCESS)
 ===============================================================================
-[✓] SHA-256 Synchronous Cryptographic Hashes
+[✓] Salted SHA-256 Hashes with Roll Number Salt (Anti-Rainbow Table)
+[✓] Demo Mode Gating (?demo=true) & Backdoor Removal in Production
 [✓] Universal Master Credentials & Session Persistence
-[✓] Immutable Roll Number Architecture
+[✓] Immutable Roll Number Architecture (Object.defineProperty)
 [✓] Strict 6 Engineering Groups & Branch Normalization
-[✓] Aspect-Ratio Cover 256x256 Canvas Downscaling & Monograms
+[✓] Aspect-Ratio Cover Canvas Downscaling & Monograms (<3 KB)
 [✓] Real-Time Marksheet Cohort Filtering & Omnibar Search (<5ms)
 [✓] Deep Student Answer Sheet & Profile Inspector Modal
+[✓] Zero-Server Drag & Drop Exam Package Loader (.exam.json / .practice.json)
+[✓] Offline Result Collection via Compact String & Scannable QR Canvas
+[✓] Two-File Air-Gapped Master Key Offline Grading (.key.json)
+[✓] Shared Lab PC Sanitization & Volatile Public Computer Mode
+[✓] Clock Rollback Detection & Seeded PRNG Anti-Cheat Guards
+[✓] 100% Offline-First PWA Service Worker (sw.js)
 ```
 
 ---

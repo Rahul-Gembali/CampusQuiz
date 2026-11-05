@@ -120,15 +120,20 @@ function assert(condition, testName) {
 // =========================================================================
 console.log("--- 1. UNIVERSAL MASTER CREDENTIALS & HASHING ---");
 
-// Test 1.1: Password Hashing
-const facultyHash = CQ.hashPassword("Avanthi#Faculty2026");
-assert(facultyHash === "8a38262f0c8510a24441965f1bf3ddb33879e3c1cd9091cfd192236a1c755286", "1.1 SHA-256 for Avanthi#Faculty2026 matches standard hash");
+// Test 1.1: Salted Password Hashing (Flaw 4)
+const facultyHash = CQ.hashPassword("Avanthi#Faculty2026", "FACULTY_ADMIN");
+assert(facultyHash === "e930f0e1e8f60851fba572ee42553e6cd8b8860410f145857839752c154c43f1", "1.1 SHA-256 for Avanthi#Faculty2026 matches salted hash");
 
-const studentHash = CQ.hashPassword("Avanthi#Student2026");
-assert(studentHash === "92f967d713d798abe2b9bece28318eed5a61119e63e656b4f4d1a968c3cba859", "1.2 SHA-256 for Avanthi#Student2026 matches standard hash");
+const studentHash = CQ.hashPassword("Avanthi#Student2026", "26A91A0500");
+assert(studentHash === "f8c94ef2a30f3ee2c44ba5d2c58eb954115fef9d784316827784979859416c8a", "1.2 SHA-256 for Avanthi#Student2026 matches salted hash");
 
-const defaultRegHash = CQ.hashPassword("Avanthi@123");
-assert(defaultRegHash === "0fc0e850d418d835b28eb00cf41138b44af44d28ec58393c91906b41bb82080f", "1.3 SHA-256 for Avanthi@123 matches standard hash");
+const defaultRegHash = CQ.hashPassword("Avanthi@123", "26A91A0524");
+assert(defaultRegHash === "206ff4417c11951514ef36e0352132454663293d061cc4ae2c97d73ff1c0d409", "1.3 SHA-256 for Avanthi@123 matches salted hash");
+
+// Test 1.3b: Rainbow table protection (different salts yield distinct hashes for identical passwords)
+const hashA = CQ.hashPassword("Secret123", "26A91A0501");
+const hashB = CQ.hashPassword("Secret123", "26A91A0502");
+assert(hashA !== hashB, "1.3b Distinct roll numbers produce distinct hashes for same password (anti-rainbow table)");
 
 // Test 1.4: User Registry Initialization
 const registry = CQ.initUserRegistry();
@@ -229,11 +234,21 @@ assert(facultySession && facultySession.id === 'FACULTY_ADMIN', "5.1 Quick Fill 
 CQ.lockFacultyMode();
 assert(!mockLocalStorage.getItem('campusquiz_logged_faculty'), "5.2 lockFacultyMode() locks faculty portal and clears session");
 
-// Test 5.3: Passkey backward compatibility (avanthi2026)
+// Test 5.3: Production Mode Backdoor Rejection (Flaw 2)
+CQ.setDemoMode(false);
 document.getElementById('facultyIdInput').value = '';
 document.getElementById('facultyPinInput').value = 'avanthi2026';
 CQ.verifyFacultyPin();
-assert(mockLocalStorage.getItem('campusquiz_logged_faculty') !== null, "5.3 Legacy passkey 'avanthi2026' still unlocks portal");
+assert(!mockLocalStorage.getItem('campusquiz_logged_faculty'), "5.3 In production mode, backdoor passkey 'avanthi2026' is strictly rejected");
+
+// Test 5.4: Demo Mode Passkey Acceptance (Flaw 1)
+CQ.setDemoMode(true);
+document.getElementById('facultyIdInput').value = '';
+document.getElementById('facultyPinInput').value = 'avanthi2026';
+CQ.verifyFacultyPin();
+assert(mockLocalStorage.getItem('campusquiz_logged_faculty') !== null, "5.4 In Demo Mode, legacy passkey 'avanthi2026' unlocks portal for evaluation");
+CQ.lockFacultyMode();
+CQ.setDemoMode(false);
 
 // =========================================================================
 // TEST SUITE 6: Academic Cohort Targeting Engine

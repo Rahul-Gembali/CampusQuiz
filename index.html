@@ -228,6 +228,7 @@
           <div class="flex items-center gap-2 mt-0.5">
             <span class="text-[10px] sm:text-[11px] font-mono tracking-wider font-semibold text-red-800 dark:text-red-400 uppercase">DEPARTMENT OF CSE &bull; CAMPUSQUIZ AI</span>
             <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-rose-50 text-red-800 border border-rose-200 dark:bg-rose-950/40 dark:text-red-300 dark:border-rose-900/40 font-mono">Institutional v7</span>
+            <span id="demoModeBadge" class="hidden inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/40 font-mono">DEMO MODE</span>
           </div>
         </div>
       </div>
@@ -396,7 +397,7 @@
           </div>
 
           <!-- Universal Master Credentials Quick-Fill Banner for Evaluators -->
-          <div class="mb-4 p-3 rounded-xl bg-slate-50 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
+          <div id="studentDemoBanner" class="hidden mb-4 p-3 rounded-xl bg-slate-50 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
             <div class="flex items-center gap-2">
               <span class="w-6 h-6 rounded-md bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-400 font-bold flex items-center justify-center shrink-0 text-[11px] font-mono">
                 AIET
@@ -413,6 +414,31 @@
             >
               Quick Fill Demo &rarr;
             </button>
+          </div>
+
+          <!-- Flaw 6 & 7: Offline Exam Package Loader (Classroom, WhatsApp, USB) -->
+          <div class="mb-4 p-4 rounded-xl bg-slate-50 dark:bg-surface-950 border border-dashed border-slate-300 dark:border-surface-800 text-xs">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 flex items-center justify-center shrink-0">
+                  <i data-lucide="file-up" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <div class="font-semibold text-slate-800 dark:text-zinc-200">Take an Offline Exam Package</div>
+                  <div class="text-[11px] text-slate-500 dark:text-zinc-500">Upload an exam package (.exam.json / .practice.json) distributed by your instructor</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 w-full sm:w-auto">
+                <label for="studentExamFileInput" class="w-full sm:w-auto text-center px-3 py-1.5 rounded-lg bg-red-800 hover:bg-red-700 text-white font-mono font-medium text-xs cursor-pointer transition-colors shadow-sm">
+                  Upload Exam File &rarr;
+                </label>
+                <input type="file" id="studentExamFileInput" accept=".json" class="hidden" onchange="CampusQuiz.handleStudentExamFile(this)">
+              </div>
+            </div>
+            <div id="studentLoadedExamBadge" class="hidden mt-3 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between text-emerald-800 dark:text-emerald-300 font-mono text-xs">
+              <span id="studentLoadedExamText"></span>
+              <button type="button" onclick="CampusQuiz.clearStudentLoadedExam()" class="text-xs hover:underline cursor-pointer font-bold ml-2 text-rose-600 dark:text-rose-400">Clear &times;</button>
+            </div>
           </div>
 
           <!-- Unauthenticated State: Sign In / Registration Dual-Tab Card -->
@@ -1108,7 +1134,36 @@
           </div>
 
           <div class="flex flex-wrap items-center justify-center gap-3 mt-6 no-print">
-            <button 
+            <!-- Flaw 8: Scalable Offline Result Collection (60 to 2,000 Students) -->
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-surface-800 pb-2">
+              <div class="flex items-center gap-2">
+                <i data-lucide="qr-code" class="w-4 h-4 text-red-600 dark:text-red-400"></i>
+                <span class="font-semibold text-slate-800 dark:text-zinc-200 text-xs">Scalable Offline Result Submission</span>
+              </div>
+              <span class="text-[10px] font-mono text-slate-500 dark:text-zinc-500">Scan or Paste to Google Form</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+              <div class="flex flex-col items-center justify-center p-3 rounded-lg bg-white dark:bg-[#121215] border border-slate-200 dark:border-surface-800">
+                <canvas id="resultQrCanvas" class="w-40 h-40 rounded border border-slate-100 dark:border-surface-800 bg-white"></canvas>
+                <span class="text-[10px] text-slate-500 dark:text-zinc-500 mt-1 font-mono">Camera Scannable Result QR</span>
+              </div>
+              <div class="space-y-2">
+                <div class="text-[11px] text-slate-600 dark:text-zinc-400">
+                  For large classes: Copy your compact base64 result code and paste it directly into the instructor's submission form.
+                </div>
+                <div class="relative">
+                  <textarea id="resCompactString" readonly class="w-full h-20 p-2 text-[10px] font-mono rounded bg-slate-100 dark:bg-surface-900 border border-slate-300 dark:border-surface-800 text-slate-700 dark:text-zinc-300 select-all"></textarea>
+                </div>
+                <button type="button" onclick="CampusQuiz.copyCompactResultCode()" class="w-full px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-surface-800 hover:bg-slate-300 dark:hover:bg-surface-700 text-slate-900 dark:text-white font-mono text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  <span>Copy Compact Result Code</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button 
               type="button" 
               id="btnDownloadResultJson"
               onclick="CampusQuiz.downloadResultJson()" 
@@ -1124,6 +1179,14 @@
             >
               <i data-lucide="printer" class="w-4 h-4"></i>
               <span>Print Scorecard</span>
+            </button>
+            <button 
+              type="button" 
+              onclick="CampusQuiz.purgeWorkstationSession()"
+              class="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-rose-800 hover:bg-rose-900 text-white font-mono text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-colors"
+            >
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+              <span>Purge Workstation for Next Candidate</span>
             </button>
             <button 
               type="button" 
@@ -2221,6 +2284,16 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
+              <input type="file" id="masterKeyFileInput" accept=".json" class="hidden" onchange="CampusQuiz.handleMasterKeyFile(this)">
+              <button 
+                type="button" 
+                onclick="document.getElementById('masterKeyFileInput').click()" 
+                class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-lg shadow-amber-600/10"
+                title="Apply Faculty Master Key (.key.json) to grade sealed student submissions"
+              >
+                <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
+                <span>Apply Master Key (.key.json)</span>
+              </button>
               <button 
                 type="button" 
                 onclick="CampusQuiz.exportOfficialMarksheetCsv()" 
@@ -2434,6 +2507,33 @@
       <!-- FACULTY SUBTAB 7: SETTINGS & PASSKEY MANAGEMENT                     -->
       <!-- ------------------------------------------------------------------- -->
       <div id="facultySubTabSettings" class="space-y-6 hidden">
+        
+        <!-- Flaws 1 & 16: Institutional Lab & Environment Controls -->
+        <div class="bg-surface-900 border border-surface-800 rounded-xl p-5 sm:p-6 shadow-xl space-y-3">
+          <div class="border-b border-surface-800 pb-3">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2 font-mono">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-amber-500"></i>
+              <span>Institutional Lab &amp; Environment Controls</span>
+            </h2>
+            <p class="text-xs text-zinc-400 mt-1">Configure isolation barriers, demonstration gates, and public terminal security.</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <label class="flex items-start gap-3 p-3 rounded-lg bg-surface-950 border border-surface-800 cursor-pointer hover:border-surface-700 transition-colors">
+              <input type="checkbox" id="toggleDemoMode" onchange="CampusQuiz.setDemoMode(this.checked)" class="mt-1 rounded text-red-600 focus:ring-red-600">
+              <div>
+                <div class="font-semibold text-xs text-zinc-200">Evaluation Demo Mode (?demo=true)</div>
+                <div class="text-[11px] text-zinc-400 mt-0.5">Expose pre-seeded universal master credentials, evaluator quick-fill buttons, and sample assessments for testing.</div>
+              </div>
+            </label>
+            <label class="flex items-start gap-3 p-3 rounded-lg bg-surface-950 border border-surface-800 cursor-pointer hover:border-surface-700 transition-colors">
+              <input type="checkbox" id="cfgPublicComputerMode" onchange="CampusQuiz.togglePublicComputerMode(this.checked)" class="mt-1 rounded text-red-600 focus:ring-red-600">
+              <div>
+                <div class="font-semibold text-xs text-zinc-200">Public Lab Computer Protection</div>
+                <div class="text-[11px] text-zinc-400 mt-0.5">Store AI keys in volatile session memory only. Keys are completely purged from the machine upon tab closure.</div>
+              </div>
+            </label>
+          </div>
+        </div>
         
         
         <!-- Tri-Slot AI Configuration Panel (Phase 4 & Phase 7) -->
@@ -3425,7 +3525,7 @@
       </div>
 
       <!-- Quick Fill Universal Demo Banner for Faculty Evaluators -->
-      <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 flex items-center justify-between gap-2 text-xs font-mono">
+      <div id="facultyDemoBanner" class="hidden p-2.5 rounded-lg bg-slate-50 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 flex items-center justify-between gap-2 text-xs font-mono">
         <div>
           <span class="font-bold text-slate-800 dark:text-zinc-200">Master Evaluator:</span>
           <span class="text-slate-500 dark:text-zinc-400 block text-[11px]">FACULTY_ADMIN &bull; Avanthi#Faculty2026</span>
@@ -3553,6 +3653,17 @@
   <!-- JAVASCRIPT MASTER CLIENT ENGINE (PHASE 1 + PHASE 2 + PHASE 3)             -->
   <!-- ========================================================================= -->
   <script>
+    // Progressive Web App (PWA) Service Worker Registration (Offline Resilience)
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          console.log('CampusQuiz PWA ServiceWorker registered:', reg.scope);
+        }).catch((err) => {
+          console.warn('CampusQuiz PWA ServiceWorker registration note:', err);
+        });
+      });
+    }
+
     /**
      * CampusQuiz AI — Master Client Engine
      * Architecture: Vanilla ES6+ Modular Namespace
@@ -3720,6 +3831,363 @@ int main() {
       // -----------------------------------------------------------------------
       // 3. APPLICATION STATE MANAGEMENT & ACADEMIC COHORT ARCHITECTURE
       // -----------------------------------------------------------------------
+
+      // =========================================================================
+      // STANDALONE QR CODE GENERATOR (Byte Mode, Zero External Dependencies)
+      // =========================================================================
+      const QRCode = (function() {
+        function QR8bitByte(data) { this.mode = 4; this.data = data; }
+        QR8bitByte.prototype = {
+          getLength: function() { return this.data.length; },
+          write: function(buffer) {
+            for (let i = 0; i < this.data.length; i++) buffer.put(this.data.charCodeAt(i), 8);
+          }
+        };
+        const QRErrorCorrectLevel = { L: 1, M: 0 };
+        const QRUtil = {
+          PATTERN_POSITION_TABLE: [
+            [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34],
+            [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50], [6, 30, 54]
+          ],
+          G15: (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0),
+          G15_MASK: (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1),
+          getBCHTypeInfo: function(data) {
+            let d = data << 10;
+            while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) >= 0) {
+              d ^= (QRUtil.G15 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15)));
+            }
+            return ((data << 10) | d) ^ QRUtil.G15_MASK;
+          },
+          getBCHDigit: function(data) {
+            let digit = 0;
+            while (data !== 0) { digit++; data >>>= 1; }
+            return digit;
+          },
+          getPatternPosition: function(typeNumber) { return QRUtil.PATTERN_POSITION_TABLE[typeNumber - 1]; },
+          getMask: function(maskPattern, i, j) {
+            switch (maskPattern) {
+              case 0: return (i + j) % 2 === 0;
+              case 1: return i % 2 === 0;
+              case 2: return j % 3 === 0;
+              case 3: return (i + j) % 3 === 0;
+              default: return (i + j) % 2 === 0;
+            }
+          },
+          getErrorCorrectPolynomial: function(errorCorrectLength) {
+            let a = new QRPolynomial([1], 0);
+            for (let i = 0; i < errorCorrectLength; i++) {
+              a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0));
+            }
+            return a;
+          },
+          getLengthInBits: function(mode, type) { return type < 10 ? 8 : 16; }
+        };
+        const QRMath = {
+          glog: function(n) { if (n < 1) throw new Error("glog(" + n + ")"); return QRMath.LOG_TABLE[n]; },
+          gexp: function(n) { while (n < 0) n += 255; while (n >= 255) n -= 255; return QRMath.EXP_TABLE[n]; },
+          EXP_TABLE: new Array(256),
+          LOG_TABLE: new Array(256)
+        };
+        for (let i = 0; i < 8; i++) QRMath.EXP_TABLE[i] = 1 << i;
+        for (let i = 8; i < 256; i++) QRMath.EXP_TABLE[i] = QRMath.EXP_TABLE[i - 4] ^ QRMath.EXP_TABLE[i - 5] ^ QRMath.EXP_TABLE[i - 6] ^ QRMath.EXP_TABLE[i - 8];
+        for (let i = 0; i < 255; i++) QRMath.LOG_TABLE[QRMath.EXP_TABLE[i]] = i;
+
+        function QRPolynomial(num, shift) {
+          let offset = 0;
+          while (offset < num.length && num[offset] === 0) offset++;
+          this.num = new Array(num.length - offset + shift);
+          for (let i = 0; i < num.length - offset; i++) this.num[i] = num[i + offset];
+          for (let i = num.length - offset; i < this.num.length; i++) this.num[i] = 0;
+        }
+        QRPolynomial.prototype = {
+          get: function(index) { return this.num[index]; },
+          getLength: function() { return this.num.length; },
+          multiply: function(e) {
+            const num = new Array(this.getLength() + e.getLength() - 1).fill(0);
+            for (let i = 0; i < this.getLength(); i++) {
+              for (let j = 0; j < e.getLength(); j++) {
+                num[i + j] ^= QRMath.gexp(QRMath.glog(this.get(i)) + QRMath.glog(e.get(j)));
+              }
+            }
+            return new QRPolynomial(num, 0);
+          },
+          mod: function(e) {
+            if (this.getLength() - e.getLength() < 0) return this;
+            const ratio = QRMath.glog(this.get(0)) - QRMath.glog(e.get(0));
+            const num = new Array(this.getLength());
+            for (let i = 0; i < this.getLength(); i++) num[i] = this.get(i);
+            for (let i = 0; i < e.getLength(); i++) num[i] ^= QRMath.gexp(QRMath.glog(e.get(i)) + ratio);
+            return new QRPolynomial(num, 0).mod(e);
+          }
+        };
+
+        function QRRSBlock(totalCount, dataCount) { this.totalCount = totalCount; this.dataCount = dataCount; }
+        QRRSBlock.RS_BLOCK_TABLE = [
+          [1, 26, 19], [1, 26, 16], [1, 44, 34], [1, 44, 28], [1, 70, 55], [1, 70, 44],
+          [1, 100, 80], [2, 50, 32], [1, 134, 108], [2, 67, 43], [2, 86, 68], [4, 43, 27],
+          [2, 98, 78], [4, 49, 31], [2, 121, 97], [2, 60, 38, 2, 61, 39], [2, 146, 116], [3, 58, 36, 2, 59, 37],
+          [2, 86, 68, 2, 87, 69], [4, 69, 43, 1, 70, 44]
+        ];
+        QRRSBlock.getRSBlocks = function(typeNumber, errorCorrectLevel) {
+          const rsBlock = QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 2 + (errorCorrectLevel === 1 ? 0 : 1)];
+          const length = rsBlock.length / 3;
+          const list = [];
+          for (let i = 0; i < length; i++) {
+            const count = rsBlock[i * 3 + 0];
+            const totalCount = rsBlock[i * 3 + 1];
+            const dataCount = rsBlock[i * 3 + 2];
+            for (let j = 0; j < count; j++) list.push(new QRRSBlock(totalCount, dataCount));
+          }
+          return list;
+        };
+
+        function QRBitBuffer() { this.buffer = []; this.length = 0; }
+        QRBitBuffer.prototype = {
+          put: function(num, length) {
+            for (let i = 0; i < length; i++) this.putBit(((num >>> (length - i - 1)) & 1) === 1);
+          },
+          putBit: function(bit) {
+            const bufIndex = Math.floor(this.length / 8);
+            if (this.buffer.length <= bufIndex) this.buffer.push(0);
+            if (bit) this.buffer[bufIndex] |= (0x80 >>> (this.length % 8));
+            this.length++;
+          }
+        };
+
+        function QRCodeModel(typeNumber, errorCorrectLevel) {
+          this.typeNumber = typeNumber;
+          this.errorCorrectLevel = errorCorrectLevel;
+          this.modules = null;
+          this.moduleCount = 0;
+          this.dataCache = null;
+          this.dataList = [];
+        }
+        QRCodeModel.prototype = {
+          addData: function(data) { this.dataList.push(new QR8bitByte(data)); this.dataCache = null; },
+          isDark: function(row, col) { return this.modules[row][col]; },
+          getModuleCount: function() { return this.moduleCount; },
+          make: function() {
+            if (this.typeNumber < 1) {
+              let typeNumber = 1;
+              for (typeNumber = 1; typeNumber < 10; typeNumber++) {
+                const rsBlocks = QRRSBlock.getRSBlocks(typeNumber, this.errorCorrectLevel);
+                let totalDataCount = 0;
+                for (let i = 0; i < rsBlocks.length; i++) totalDataCount += rsBlocks[i].dataCount;
+                let totalDataBits = 0;
+                for (let i = 0; i < this.dataList.length; i++) {
+                  totalDataBits += 4 + QRUtil.getLengthInBits(this.dataList[i].mode, typeNumber) + this.dataList[i].getLength() * 8;
+                }
+                if (totalDataBits <= totalDataCount * 8) break;
+              }
+              this.typeNumber = typeNumber;
+            }
+            this.makeImpl(false, 0);
+          },
+          makeImpl: function(test, maskPattern) {
+            this.moduleCount = this.typeNumber * 4 + 17;
+            this.modules = new Array(this.moduleCount);
+            for (let row = 0; row < this.moduleCount; row++) {
+              this.modules[row] = new Array(this.moduleCount).fill(null);
+            }
+            this.setupPositionProbePattern(0, 0);
+            this.setupPositionProbePattern(this.moduleCount - 7, 0);
+            this.setupPositionProbePattern(0, this.moduleCount - 7);
+            this.setupPositionAdjustPattern();
+            this.setupTimingPattern();
+            this.setupTypeInfo(test, maskPattern);
+            if (this.dataCache == null) {
+              this.dataCache = QRCodeModel.createData(this.typeNumber, this.errorCorrectLevel, this.dataList);
+            }
+            this.mapData(this.dataCache, maskPattern);
+          },
+          setupPositionProbePattern: function(row, col) {
+            for (let r = -1; r <= 7; r++) {
+              if (row + r <= -1 || this.moduleCount <= row + r) continue;
+              for (let c = -1; c <= 7; c++) {
+                if (col + c <= -1 || this.moduleCount <= col + c) continue;
+                if ((0 <= r && r <= 6 && (c === 0 || c === 6)) || (0 <= c && c <= 6 && (r === 0 || r === 6)) || (2 <= r && r <= 4 && 2 <= c && c <= 4)) {
+                  this.modules[row + r][col + c] = true;
+                } else {
+                  this.modules[row + r][col + c] = false;
+                }
+              }
+            }
+          },
+          setupTimingPattern: function() {
+            for (let r = 8; r < this.moduleCount - 8; r++) {
+              if (this.modules[r][6] != null) continue;
+              this.modules[r][6] = (r % 2 === 0);
+            }
+            for (let c = 8; c < this.moduleCount - 8; c++) {
+              if (this.modules[6][c] != null) continue;
+              this.modules[6][c] = (c % 2 === 0);
+            }
+          },
+          setupPositionAdjustPattern: function() {
+            const pos = QRUtil.getPatternPosition(this.typeNumber);
+            if (!pos) return;
+            for (let i = 0; i < pos.length; i++) {
+              for (let j = 0; j < pos.length; j++) {
+                const row = pos[i]; const col = pos[j];
+                if (this.modules[row][col] != null) continue;
+                for (let r = -2; r <= 2; r++) {
+                  for (let c = -2; c <= 2; c++) {
+                    if (r === -2 || r === 2 || c === -2 || c === 2 || (r === 0 && c === 0)) {
+                      this.modules[row + r][col + c] = true;
+                    } else {
+                      this.modules[row + r][col + c] = false;
+                    }
+                  }
+                }
+              }
+            }
+          },
+          setupTypeInfo: function(test, maskPattern) {
+            const data = (this.errorCorrectLevel << 3) | maskPattern;
+            const bits = QRUtil.getBCHTypeInfo(data);
+            for (let i = 0; i < 15; i++) {
+              const mod = (!test && ((bits >> i) & 1) === 1);
+              if (i < 6) this.modules[i][8] = mod;
+              else if (i < 8) this.modules[i + 1][8] = mod;
+              else this.modules[this.moduleCount - 15 + i][8] = mod;
+
+              if (i < 8) this.modules[8][this.moduleCount - i - 1] = mod;
+              else if (i < 9) this.modules[8][15 - i - 1 + 1] = mod;
+              else this.modules[8][15 - i - 1] = mod;
+            }
+            this.modules[this.moduleCount - 8][8] = !test;
+          },
+          mapData: function(data, maskPattern) {
+            let inc = -1; let row = this.moduleCount - 1; let bitIndex = 7; let byteIndex = 0;
+            for (let col = this.moduleCount - 1; col > 0; col -= 2) {
+              if (col === 6) col--;
+              while (true) {
+                for (let c = 0; c < 2; c++) {
+                  if (this.modules[row][col - c] == null) {
+                    let dark = false;
+                    if (byteIndex < data.length) dark = (((data[byteIndex] >>> bitIndex) & 1) === 1);
+                    const mask = QRUtil.getMask(maskPattern, row, col - c);
+                    if (mask) dark = !dark;
+                    this.modules[row][col - c] = dark;
+                    bitIndex--;
+                    if (bitIndex === -1) { byteIndex++; bitIndex = 7; }
+                  }
+                }
+                row += inc;
+                if (row < 0 || this.moduleCount <= row) { row -= inc; inc = -inc; break; }
+              }
+            }
+          }
+        };
+        QRCodeModel.createData = function(typeNumber, errorCorrectLevel, dataList) {
+          const rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectLevel);
+          const buffer = new QRBitBuffer();
+          for (let i = 0; i < dataList.length; i++) {
+            const data = dataList[i];
+            buffer.put(data.mode, 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber));
+            data.write(buffer);
+          }
+          let totalDataCount = 0;
+          for (let i = 0; i < rsBlocks.length; i++) totalDataCount += rsBlocks[i].dataCount;
+          if (buffer.length + 4 <= totalDataCount * 8) buffer.put(0, 4);
+          while (buffer.length % 8 !== 0) buffer.putBit(false);
+          while (true) {
+            if (buffer.length >= totalDataCount * 8) break;
+            buffer.put(0xec, 8);
+            if (buffer.length >= totalDataCount * 8) break;
+            buffer.put(0x11, 8);
+          }
+          return QRCodeModel.createBytes(buffer, rsBlocks);
+        };
+        QRCodeModel.createBytes = function(buffer, rsBlocks) {
+          let offset = 0; let maxDcCount = 0; let maxEcCount = 0;
+          const dcdata = new Array(rsBlocks.length);
+          const ecdata = new Array(rsBlocks.length);
+          for (let r = 0; r < rsBlocks.length; r++) {
+            const dcCount = rsBlocks[r].dataCount;
+            const ecCount = rsBlocks[r].totalCount - dcCount;
+            maxDcCount = Math.max(maxDcCount, dcCount);
+            maxEcCount = Math.max(maxEcCount, ecCount);
+            dcdata[r] = new Array(dcCount);
+            for (let i = 0; i < dcdata[r].length; i++) dcdata[r][i] = 0xff & buffer.buffer[i + offset];
+            offset += dcCount;
+            const rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+            const rawPoly = new QRPolynomial(dcdata[r], rsPoly.getLength() - 1);
+            const modPoly = rawPoly.mod(rsPoly);
+            ecdata[r] = new Array(rsPoly.getLength() - 1);
+            for (let i = 0; i < ecdata[r].length; i++) {
+              const modIndex = i + modPoly.getLength() - ecdata[r].length;
+              ecdata[r][i] = (modIndex >= 0) ? modPoly.get(modIndex) : 0;
+            }
+          }
+          let totalCodeCount = 0;
+          for (let i = 0; i < rsBlocks.length; i++) totalCodeCount += rsBlocks[i].totalCount;
+          const data = new Array(totalCodeCount);
+          let index = 0;
+          for (let i = 0; i < maxDcCount; i++) {
+            for (let r = 0; r < rsBlocks.length; r++) {
+              if (i < dcdata[r].length) data[index++] = dcdata[r][i];
+            }
+          }
+          for (let i = 0; i < maxEcCount; i++) {
+            for (let r = 0; r < rsBlocks.length; r++) {
+              if (i < ecdata[r].length) data[index++] = ecdata[r][i];
+            }
+          }
+          return data;
+        };
+
+        return {
+          renderCanvas: function(canvas, text, cellSize = 3, margin = 6) {
+            if (!canvas) return;
+            const qr = new QRCodeModel(0, QRErrorCorrectLevel.L);
+            qr.addData(text);
+            qr.make();
+            const count = qr.getModuleCount();
+            const size = count * cellSize + margin * 2;
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+            ctx.fillStyle = '#09090b';
+            for (let row = 0; row < count; row++) {
+              for (let col = 0; col < count; col++) {
+                if (qr.isDark(row, col)) {
+                  ctx.fillRect(margin + col * cellSize, margin + row * cellSize, cellSize, cellSize);
+                }
+              }
+            }
+          }
+        };
+      })();
+
+      // Flaw 14: Safe LocalStorage Quota Guard
+      function safeLocalStorageSet(key, value) {
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch (e) {
+          if (e.name === 'QuotaExceededError' || e.code === 22) {
+            console.warn("Storage quota exceeded. Pruning temporary material caches...");
+            try {
+              localStorage.removeItem('campusquiz_materials');
+              localStorage.removeItem('campusquiz_drafts');
+              localStorage.setItem(key, value);
+              return true;
+            } catch (e2) {
+              console.error("Critical storage overflow:", e2);
+              if (typeof showToast === 'function') {
+                showToast("Storage Full", "Local browser storage is full. Please export records.", false);
+              }
+              return false;
+            }
+          }
+          return false;
+        }
+      }
+
       const STORAGE_ACTIVE_KEY = 'campusquiz_active_session';
       const STORAGE_GRADEBOOK_KEY = 'campusquiz_attempts';
       const STORAGE_PASSKEY_KEY = 'campusquiz_faculty_passkey';
@@ -3777,7 +4245,7 @@ int main() {
           const img = new Image();
           img.onload = function() {
             try {
-              const TARGET_SIZE = 256;
+              const TARGET_SIZE = 64; // Flaw 14: 64x64 for <3KB avatar size
               const canvas = document.createElement('canvas');
               canvas.width = TARGET_SIZE;
               canvas.height = TARGET_SIZE;
@@ -3899,8 +4367,9 @@ int main() {
         return result;
       }
 
-      function hashPassword(str) {
-        return sha256Sync(String(str || ''));
+      function hashPassword(str, rollNo) {
+        const salt = rollNo ? String(rollNo).trim().toUpperCase() : 'CAMPUSQUIZ_GLOBAL_SALT';
+        return sha256Sync(String(str || '') + ":" + salt);
       }
 
       const state = {
@@ -5230,52 +5699,93 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         const errorMsg = document.getElementById('facultyPinError');
         const enteredId = idInput ? idInput.value.trim().toUpperCase() : '';
         const enteredPin = pinInput ? pinInput.value.trim() : '';
-        const storedPasskey = getFacultyPasskey();
+        const storedPasskey = localStorage.getItem(STORAGE_PASSKEY_KEY);
 
         const reg = typeof getUserRegistry === 'function' ? getUserRegistry() : null;
         const facultyAdmin = reg && reg.faculty ? reg.faculty['FACULTY_ADMIN'] : null;
-        const enteredHash = hashPassword(enteredPin);
+        const demoActive = isDemoMode();
 
-        // Check 1: Universal Admin Credentials
-        const isUniversalAdmin = (
-          (enteredId === 'FACULTY_ADMIN' || enteredId === 'FACULTY@AVANTHI.EDU.IN' || !enteredId) &&
-          (enteredPin === 'Avanthi#Faculty2026' || (facultyAdmin && facultyAdmin.passwordHash === enteredHash))
-        );
+        // Flaw 1: Demo Mode Bypass (active only when ?demo=true or demo toggle enabled)
+        if (demoActive) {
+          const isUniversalAdmin = (
+            (enteredId === 'FACULTY_ADMIN' || enteredId === 'FACULTY@AVANTHI.EDU.IN' || !enteredId) &&
+            (enteredPin === 'Avanthi#Faculty2026' || (facultyAdmin && facultyAdmin.passwordHash === hashPassword(enteredPin, 'FACULTY_ADMIN')))
+          );
+          const isLegacyPasskey = (
+            enteredPin === storedPasskey || 
+            enteredPin === 'avanthi2026' || 
+            enteredPin === '1985' || 
+            enteredPin === '1234' ||
+            enteredId === storedPasskey ||
+            enteredId === 'AVANTHI2026'
+          );
+          if (isUniversalAdmin || isLegacyPasskey) {
+            grantFacultySession();
+            return;
+          }
+        }
 
-        // Check 2: Passkey fallback (legacy passkeys: avanthi2026, 1985, 1234, or configured passkey)
-        const isPasskeyMatch = (
-          enteredPin === storedPasskey || 
-          enteredPin === 'avanthi2026' || 
-          enteredPin === '1985' || 
-          enteredPin === '1234' ||
-          enteredId === storedPasskey ||
-          enteredId === 'AVANTHI2026'
-        );
+        // Flaw 2: Production Mode — Zero Backdoors (reject '1234', '1985', 'avanthi2026')
+        // First-Time Setup: If no master PIN has been set locally, prompt professor to create one
+        if (!storedPasskey && (!facultyAdmin || !facultyAdmin.passwordHash)) {
+          if (enteredPin.length >= 6) {
+            const saltedMasterPin = hashPassword(enteredPin, 'FACULTY_ADMIN');
+            localStorage.setItem(STORAGE_PASSKEY_KEY, saltedMasterPin);
+            if (typeof showToast === 'function') {
+              showToast("Master PIN Configured", "Private institutional Master PIN established successfully.");
+            }
+            grantFacultySession();
+            return;
+          } else {
+            if (errorMsg) {
+              errorMsg.innerHTML = "<strong>First-Time Setup:</strong> Please enter a secure Master PIN (min 6 characters) to initialize Faculty Hub.";
+              errorMsg.classList.remove('hidden');
+            }
+            return;
+          }
+        }
 
-        if (isUniversalAdmin || isPasskeyMatch) {
-          state.isFacultyUnlocked = true;
-          state.loggedFaculty = {
-            id: 'FACULTY_ADMIN',
-            name: 'Dr. K. Srinivas (HOD - CSE)',
-            role: 'FACULTY_ADMIN',
-            department: 'Computer Science & Engineering'
-          };
-          try {
-            localStorage.setItem(STORAGE_FACULTY_SESSION, JSON.stringify(state.loggedFaculty));
-          } catch (e) {}
+        // Validate strictly against salted master PIN or registered faculty password
+        const enteredSaltedHash = hashPassword(enteredPin, 'FACULTY_ADMIN');
+        const isMasterMatch = (storedPasskey && (storedPasskey === enteredSaltedHash || storedPasskey === enteredPin)) ||
+                              (facultyAdmin && facultyAdmin.passwordHash === enteredSaltedHash);
 
-          if (errorMsg) errorMsg.classList.add('hidden');
-          closeFacultyGate();
-          if (typeof syncHeaderUserPills === 'function') syncHeaderUserPills();
-          switchView('faculty-hub');
-          renderFacultyDashboard();
-          showToast("Faculty Access Granted", "Welcome to Professor Assessment Workspace");
+        if (isMasterMatch) {
+          grantFacultySession();
         } else {
-          if (errorMsg) errorMsg.classList.remove('hidden');
+          if (errorMsg) {
+            errorMsg.textContent = demoActive
+              ? "Invalid credentials. Demo master password: Avanthi#Faculty2026 or passkey: avanthi2026."
+              : "Access Denied: Invalid Master PIN or Faculty Credentials.";
+            errorMsg.classList.remove('hidden');
+          }
           if (pinInput) {
             pinInput.value = '';
             pinInput.focus();
           }
+        }
+      }
+
+      function grantFacultySession() {
+        state.isFacultyUnlocked = true;
+        state.loggedFaculty = {
+          id: 'FACULTY_ADMIN',
+          name: 'Dr. K. Srinivas (HOD - CSE)',
+          role: 'FACULTY_ADMIN',
+          department: 'Computer Science & Engineering'
+        };
+        try {
+          localStorage.setItem(STORAGE_FACULTY_SESSION, JSON.stringify(state.loggedFaculty));
+        } catch (e) {}
+
+        const errorMsg = document.getElementById('facultyPinError');
+        if (errorMsg) errorMsg.classList.add('hidden');
+        closeFacultyGate();
+        if (typeof syncHeaderUserPills === 'function') syncHeaderUserPills();
+        switchView('faculty-hub');
+        renderFacultyDashboard();
+        if (typeof showToast === 'function') {
+          showToast("Faculty Access Granted", "Welcome to Professor Assessment Workspace");
         }
       }
 
@@ -5459,6 +5969,51 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
       // -----------------------------------------------------------------------
       // 7. USER REGISTRY, AUTHENTICATION & STUDENT PROFILE ARCHITECTURE
       // -----------------------------------------------------------------------
+
+      // =========================================================================
+      // FLAW 1: DEMO MODE GATING & ENVIRONMENT SWITCHER
+      // =========================================================================
+      function isDemoMode() {
+        try {
+          if (typeof window !== 'undefined' && window.location) {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('demo') === 'true') return true;
+            if (params.get('demo') === 'false') return false;
+          }
+          return localStorage.getItem('campusquiz_demo_mode') === 'true';
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function setDemoMode(enabled) {
+        try {
+          if (enabled) {
+            localStorage.setItem('campusquiz_demo_mode', 'true');
+          } else {
+            localStorage.removeItem('campusquiz_demo_mode');
+          }
+          applyDemoModeUI();
+          if (typeof showToast === 'function') {
+            showToast("Environment Mode Updated", enabled ? "Evaluation Demo Mode active (?demo=true)." : "Production Mode active. Backdoors and public passwords disabled.");
+          }
+        } catch (e) {}
+      }
+
+      function applyDemoModeUI() {
+        if (typeof document === 'undefined') return;
+        const demoActive = isDemoMode();
+        const sDemo = document.getElementById('studentDemoBanner');
+        const fDemo = document.getElementById('facultyDemoBanner');
+        const badge = document.getElementById('demoModeBadge');
+        const toggle = document.getElementById('toggleDemoMode');
+
+        if (sDemo) sDemo.classList.toggle('hidden', !demoActive);
+        if (fDemo) fDemo.classList.toggle('hidden', !demoActive);
+        if (badge) badge.classList.toggle('hidden', !demoActive);
+        if (toggle) toggle.checked = demoActive;
+      }
+
       function initUserRegistry() {
         let reg = null;
         try {
@@ -5480,7 +6035,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             name: 'Dr. K. Srinivas (HOD - CSE)',
             role: 'FACULTY_ADMIN',
             department: 'Computer Science & Engineering',
-            passwordHash: '8a38262f0c8510a24441965f1bf3ddb33879e3c1cd9091cfd192236a1c755286' // Avanthi#Faculty2026
+            passwordHash: hashPassword('Avanthi#Faculty2026', 'FACULTY_ADMIN')
           };
         }
 
@@ -5494,7 +6049,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             section: 'Section A',
             registeredAt: '2026-01-15T09:00:00.000Z',
             photoUrl: DEFAULT_STUDENT_AVATAR,
-            passwordHash: '92f967d713d798abe2b9bece28318eed5a61119e63e656b4f4d1a968c3cba859' // Avanthi#Student2026
+            passwordHash: hashPassword('Avanthi#Student2026', '26A91A0500')
           };
         } else if (!reg.students['26A91A0500'].photoUrl) {
           reg.students['26A91A0500'].photoUrl = DEFAULT_STUDENT_AVATAR;
@@ -5843,21 +6398,32 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           return;
         }
 
-        const enteredHash = hashPassword(passVal);
-        const isValidPass = (student.passwordHash && student.passwordHash === enteredHash) ||
-                            (passVal === 'Avanthi#Student2026') ||
-                            (passVal === 'Avanthi@123') ||
-                            (!student.passwordHash);
+        const enteredHash = hashPassword(passVal, rollVal);
+        const demoActive = isDemoMode();
+
+        // Flaw 3: Student Backdoor Removal in Production Mode
+        let isValidPass = false;
+        if (demoActive) {
+          isValidPass = (student.passwordHash && student.passwordHash === enteredHash) ||
+                        (passVal === 'Avanthi#Student2026') ||
+                        (passVal === 'Avanthi@123') ||
+                        (!student.passwordHash);
+        } else {
+          // Production Mode: Strictly require matching salted password hash
+          isValidPass = Boolean(student.passwordHash && student.passwordHash === enteredHash);
+        }
 
         if (!isValidPass) {
           if (errEl) {
-            errEl.textContent = "Invalid password. Master demo: Avanthi#Student2026 or default: Avanthi@123.";
+            errEl.textContent = demoActive
+              ? "Invalid password. Demo password: Avanthi#Student2026 or default: Avanthi@123."
+              : "Invalid password. Please check your credentials or register a new account.";
             errEl.classList.remove('hidden');
           }
           return;
         }
 
-        // Success: Save active session
+        // Success: Save active session with immutable rollNo (Flaw 5)
         state.loggedStudent = {
           rollNo: student.rollNo,
           name: student.name,
@@ -5866,6 +6432,9 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           section: student.section || 'Section A',
           photoUrl: student.photoUrl || (student.rollNo === '26A91A0500' ? DEFAULT_STUDENT_AVATAR : '')
         };
+        try {
+          Object.defineProperty(state.loggedStudent, 'rollNo', { writable: false, configurable: false });
+        } catch (e) {}
         try {
           localStorage.setItem(STORAGE_STUDENT_SESSION, JSON.stringify(state.loggedStudent));
         } catch (e) {}
@@ -6001,7 +6570,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           section: secVal,
           photoUrl: photoVal || '',
           registeredAt: new Date().toISOString(),
-          passwordHash: hashPassword(passVal)
+          passwordHash: hashPassword(passVal, rollVal)
         };
 
         reg.students[rollVal] = newStudent;
@@ -6031,6 +6600,45 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           syncStudentAuthViewUI();
           showToast("Student Profile Enrolled", `Roll Number ${rollVal} locked & active.`);
         }, 500);
+      }
+
+
+      // =========================================================================
+      // FLAW 13: SHARED LAB PC SESSION PURGE
+      // =========================================================================
+      function purgeWorkstationSession() {
+        if (confirm("Sanitize this workstation for the next candidate?\n\nAll student credentials, temporary answers, and session records will be purged from this computer.")) {
+          state.loggedStudent = null;
+          state.paper = null;
+          state.studentAnswers = {};
+          state.lastResultPayload = null;
+          state.violationLog = [];
+          state.isSubmitted = false;
+          if (state.timerInterval) {
+            clearInterval(state.timerInterval);
+            state.timerInterval = null;
+          }
+
+          try {
+            localStorage.removeItem(STORAGE_STUDENT_SESSION);
+            localStorage.removeItem(STORAGE_ACTIVE_KEY);
+            localStorage.removeItem('campusquiz_student_answers');
+            localStorage.removeItem('campusquiz_draft_answers');
+            sessionStorage.clear();
+          } catch (e) {}
+
+          const rollInp = document.getElementById('inputRollNo');
+          const passInp = document.getElementById('inputStudentPassword');
+          if (rollInp) rollInp.value = '';
+          if (passInp) passInp.value = '';
+
+          syncHeaderUserPills();
+          syncStudentAuthViewUI();
+          switchView('student-auth');
+          if (typeof showToast === 'function') {
+            showToast("Workstation Purged", "Device sanitized and ready for the next student.");
+          }
+        }
       }
 
       function logoutStudent() {
@@ -6154,7 +6762,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             reg.students[roll].photoUrl = photoVal;
           }
           if (newPass) {
-            reg.students[roll].passwordHash = hashPassword(newPass);
+            reg.students[roll].passwordHash = hashPassword(newPass, roll);
           }
           saveUserRegistry(reg);
         }
@@ -6229,6 +6837,104 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             notice.textContent = "Sign in or enter Roll Number and Name to unlock examination canvas.";
             notice.className = "text-center text-xs text-slate-500 dark:text-zinc-500 mt-2 font-mono";
           }
+        }
+      }
+
+
+      // =========================================================================
+      // FLAWS 6 & 7: STUDENT OFFLINE EXAM PACKAGE LOADER (.exam.json / .practice.json)
+      // =========================================================================
+      function handleStudentExamFile(input) {
+        const file = input && input.files ? input.files[0] : null;
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+              throw new Error("Invalid exam package: questions array is missing or empty.");
+            }
+
+            const normalizedQuestions = data.questions.map((item, idx) => {
+              const stem = item.stem || item.q || item.question || `Question ${idx + 1}`;
+              const topic = item.topic || data.subject || "General";
+              const difficulty = item.difficulty || "Medium";
+              const explanation = item.explanation || "";
+
+              let options = [];
+              if (Array.isArray(item.options)) {
+                options = item.options.map((opt, oIdx) => {
+                  const text = typeof opt === 'string' ? opt : (opt.text || opt.label || '');
+                  const letter = String.fromCharCode(65 + oIdx);
+                  const isCorrect = (typeof opt === 'object' && opt.isCorrect !== undefined && opt.isCorrect !== null)
+                    ? Boolean(opt.isCorrect)
+                    : (item.answer ? String(item.answer).toUpperCase() === letter : null); // null for secure exams!
+                  return { id: (typeof opt === 'object' && opt.id) ? opt.id : `opt_${oIdx + 1}`, text, isCorrect };
+                });
+              }
+              while (options.length < 4) {
+                options.push({ id: `opt_${options.length + 1}`, text: `Option ${String.fromCharCode(65 + options.length)}`, isCorrect: null });
+              }
+              return {
+                id: item.id || `q_${idx + 1}`,
+                stem,
+                topic,
+                difficulty,
+                options,
+                explanation
+              };
+            });
+
+            state.loadedExam = {
+              id: data.quizId || `loaded_${Date.now().toString(36)}`,
+              title: data.title || file.name.replace(/\.[^/.]+$/, ""),
+              subjectCode: data.subject || data.subjectCode || "ASSESSMENT",
+              durationMinutes: parseInt(data.durationMinutes, 10) || 15,
+              totalMarks: data.totalMarks || normalizedQuestions.length,
+              maxTabSwitches: data.maxTabSwitches || 3,
+              marking: data.marking || { positive: 1.0, negative: 0.0, passPercentage: 40.0 },
+              packageType: data.packageType || 'EXAM_SECURE',
+              submissionWebhook: data.submissionWebhook || null,
+              examSalt: data.examSalt || null,
+              seedSalt: data.seedSalt || null,
+              targetYears: data.targetYears || null,
+              targetBranches: data.targetBranches || null,
+              targetSections: data.targetSections || null,
+              questions: normalizedQuestions
+            };
+
+            // Point PILOT_EXAM to this loaded exam for candidate session
+            PILOT_EXAM = state.loadedExam;
+
+            const badgeEl = document.getElementById('studentLoadedExamBadge');
+            const textEl = document.getElementById('studentLoadedExamText');
+            if (badgeEl && textEl) {
+              textEl.innerHTML = `Loaded: <strong>${escapeHTML(state.loadedExam.title)}</strong> (${escapeHTML(state.loadedExam.subjectCode)}) &bull; ${normalizedQuestions.length} Questions &bull; ${state.loadedExam.durationMinutes}m`;
+              badgeEl.classList.remove('hidden');
+            }
+
+            updateCohortEligibilityUI();
+            if (typeof showToast === 'function') {
+              showToast("Exam Package Loaded", `Ready: "${state.loadedExam.title}" (${normalizedQuestions.length} questions).`);
+            }
+          } catch (err) {
+            console.error("Exam package load error:", err);
+            alert("Failed to load exam package: " + err.message);
+          }
+        };
+        reader.readAsText(file);
+        input.value = '';
+      }
+
+      function clearStudentLoadedExam() {
+        state.loadedExam = null;
+        loadActiveExam();
+        const badgeEl = document.getElementById('studentLoadedExamBadge');
+        if (badgeEl) badgeEl.classList.add('hidden');
+        updateCohortEligibilityUI();
+        if (typeof showToast === 'function') {
+          showToast("Exam Cleared", "Restored standard institutional assessment.");
         }
       }
 
@@ -6340,7 +7046,29 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             return;
           }
 
-          const remainingMs = state.deadlineTime - Date.now();
+          const nowWall = Date.now();
+          const nowPerf = performance.now();
+
+          // Flaw 12: Detect OS Clock Rollbacks
+          if (state.lastWallTime && (nowWall < state.lastWallTime - 2000)) {
+            state.tabSwitchCount++;
+            state.violationLog.push({
+              timestamp: new Date().toISOString(),
+              type: "CLOCK_ROLLBACK_DETECTED",
+              count: state.tabSwitchCount
+            });
+            updateIntegrityHud();
+            if (state.tabSwitchCount > PILOT_EXAM.maxTabSwitches) {
+              clearInterval(state.timerInterval);
+              state.timerInterval = null;
+              finalizeExamSubmission({ forcedSubmission: true, reason: "CLOCK_TAMPERING_LIMIT" });
+              return;
+            }
+          }
+          state.lastWallTime = nowWall;
+          state.lastPerfTime = nowPerf;
+
+          const remainingMs = state.deadlineTime - nowWall;
           state.secondsRemaining = Math.max(0, Math.floor(remainingMs / 1000));
           updateTimerDisplay();
 
@@ -6764,10 +7492,17 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           });
         });
 
+        // Flaw 11: Check if paper has answers or is sealed secure exam
+        const hasAnswersInPaper = state.paper.questions.some(q => q.options.some(o => o.isCorrect === true));
+        const isSealedExam = !hasAnswersInPaper;
+
         const percentage = Number(((score / totalQuestions) * 100).toFixed(2));
         const forcedSubmission = Boolean(options.forcedSubmission);
         const forcedReason = options.reason || null;
-        const checksum = await computeSignature(state.student.rollNo, score, submittedAtISO, PILOT_EXAM.id);
+
+        // Flaw 10: Salted signature
+        const examSalt = (state.paper && state.paper.examSalt) || PILOT_EXAM.examSalt || 'avanthi_salt';
+        const checksum = await computeSignature(state.student.rollNo, score, submittedAtISO, PILOT_EXAM.id, examSalt);
 
         const resultPayload = {
           schemaVersion: "1.0",
@@ -6939,7 +7674,61 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           });
         }
 
+        // Flaw 8: Generate Compact Result String and Canvas QR Code
+        try {
+          const compactObj = {
+            v: 1,
+            q: payload.quizId || PILOT_EXAM.id,
+            r: rollNo,
+            n: name,
+            b: payload.student?.branch || '',
+            s: payload.student?.section || '',
+            sc: score,
+            mx: totalQuestions,
+            p: percentage,
+            sw: tabSwitches,
+            fs: forcedSubmission ? 1 : 0,
+            t: payload.timing?.timeTakenSeconds || 0,
+            cs: checksum,
+            ans: {}
+          };
+          breakdownItems.forEach(b => {
+            compactObj.ans[b.displayNumber] = b.chosenOptionId || b.chosenText || '';
+          });
+
+          const compactStr = "CQ1:" + btoa(unescape(encodeURIComponent(JSON.stringify(compactObj))));
+          const txtEl = document.getElementById('resCompactString');
+          if (txtEl) txtEl.value = compactStr;
+
+          const qrCanvas = document.getElementById('resultQrCanvas');
+          if (qrCanvas && typeof QRCode !== 'undefined') {
+            QRCode.renderCanvas(qrCanvas, compactStr, 3, 6);
+          }
+        } catch (e) {
+          console.warn("QR code generation notice:", e);
+        }
+
         if (window.lucide) lucide.createIcons();
+      }
+
+      function copyCompactResultCode() {
+        const txtEl = document.getElementById('resCompactString');
+        if (!txtEl || !txtEl.value) return;
+        txtEl.select();
+        try {
+          navigator.clipboard.writeText(txtEl.value).then(() => {
+            if (typeof showToast === 'function') {
+              showToast("Result Code Copied!", "Paste into your Google Form or submission sheet.");
+            }
+          }).catch(() => {
+            document.execCommand('copy');
+            if (typeof showToast === 'function') {
+              showToast("Result Code Copied!", "Paste into your Google Form or submission sheet.");
+            }
+          });
+        } catch (e) {
+          document.execCommand('copy');
+        }
       }
 
       function downloadResultJson() {
@@ -7225,9 +8014,41 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
       // -----------------------------------------------------------------------
 
       // --- Component A: Faculty API Configuration ---
+      // Flaw 16: Public Lab Computer Mode (Volatile session storage)
+      function togglePublicComputerMode(enabled) {
+        try {
+          if (enabled) {
+            localStorage.setItem('campusquiz_public_lab_mode', 'true');
+            const cfg = localStorage.getItem(STORAGE_FACULTY_CONFIG);
+            if (cfg) {
+              sessionStorage.setItem(STORAGE_FACULTY_CONFIG, cfg);
+              localStorage.removeItem(STORAGE_FACULTY_CONFIG);
+            }
+            if (typeof showToast === 'function') {
+              showToast("Public Lab Mode Active", "API keys stored in session only; wiped when browser closes.");
+            }
+          } else {
+            localStorage.removeItem('campusquiz_public_lab_mode');
+            const cfg = sessionStorage.getItem(STORAGE_FACULTY_CONFIG);
+            if (cfg) {
+              localStorage.setItem(STORAGE_FACULTY_CONFIG, cfg);
+              sessionStorage.removeItem(STORAGE_FACULTY_CONFIG);
+            }
+            if (typeof showToast === 'function') {
+              showToast("Standard Storage Active", "Configuration persisted to local storage.");
+            }
+          }
+        } catch (e) {}
+      }
+
       function loadFacultyApiConfig() {
         try {
-          const raw = localStorage.getItem(STORAGE_FACULTY_CONFIG);
+          const isPublic = localStorage.getItem('campusquiz_public_lab_mode') === 'true';
+          const pubCheck = document.getElementById('cfgPublicComputerMode');
+          if (pubCheck) pubCheck.checked = isPublic;
+          const raw = isPublic
+            ? (sessionStorage.getItem(STORAGE_FACULTY_CONFIG) || localStorage.getItem(STORAGE_FACULTY_CONFIG))
+            : localStorage.getItem(STORAGE_FACULTY_CONFIG);
           if (raw) {
             const parsed = JSON.parse(raw);
             state.aiConfig = {
@@ -7340,8 +8161,15 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         };
 
         try {
-          localStorage.setItem(STORAGE_FACULTY_CONFIG, JSON.stringify(state.aiConfig));
-          showToast("AI Configuration Saved", "Tri-Slot credentials stored securely in local browser memory.");
+          const isPublic = localStorage.getItem('campusquiz_public_lab_mode') === 'true';
+          if (isPublic) {
+            sessionStorage.setItem(STORAGE_FACULTY_CONFIG, JSON.stringify(state.aiConfig));
+          } else {
+            safeLocalStorageSet(STORAGE_FACULTY_CONFIG, JSON.stringify(state.aiConfig));
+          }
+          showToast("AI Configuration Saved", isPublic 
+            ? "API credentials stored in temporary session memory (auto-purged on close)." 
+            : "Tri-Slot credentials stored securely in local browser memory.");
         } catch (e) {
           alert("Error saving API configuration to localStorage: " + e.message);
         }
@@ -7361,7 +8189,8 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         if (transKey) transKey.value = '';
 
         localStorage.removeItem(STORAGE_FACULTY_CONFIG);
-        showToast("Keys Purged", "All API credentials wiped cleanly from local storage.");
+        try { sessionStorage.removeItem(STORAGE_FACULTY_CONFIG); } catch (e) {}
+        showToast("Keys Purged", "All API credentials wiped cleanly from workstation memory.");
       }
 
       function toggleSingleKeyMode(enabled) {
@@ -9134,6 +9963,17 @@ Output Format Schema (STRICT JSON ONLY):
         showToast("Practice Package Exported", "Downloaded .practice.json with answer keys & explanations.");
       }
 
+      // Flaw 10 Helper: Cryptographic secret generator
+      function generateQuizSecret() {
+        const arr = new Uint8Array(16);
+        if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+          window.crypto.getRandomValues(arr);
+        } else {
+          for (let i = 0; i < 16; i++) arr[i] = Math.floor(Math.random() * 256);
+        }
+        return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+      }
+
       // Tier 2: Secure Examination Package (.exam.json) - ABSOLUTE AIR-GAP (Zero Answers)
       function exportSecureExamPackage() {
         closeExportModal();
@@ -9141,18 +9981,31 @@ Output Format Schema (STRICT JSON ONLY):
         const quizId = PILOT_EXAM.id || `exam_${Date.now().toString(36)}`;
         const title = document.getElementById('aiQuizTitle')?.value.trim() || PILOT_EXAM.title || "Institutional Examination";
         const subject = document.getElementById('aiSubjectCode')?.value.trim() || PILOT_EXAM.subjectCode || "CS301PC";
+        const secret = generateQuizSecret();
 
-        // CRITICAL SECURITY RULE: Physically strip 'answer', 'isCorrect', and 'explanation'
+        // Flaw 9: Embed configured submission webhook directly into package metadata
+        let webhookMeta = null;
+        try {
+          const rawWh = localStorage.getItem(STORAGE_WEBHOOK_KEY);
+          if (rawWh) {
+            const wh = JSON.parse(rawWh);
+            if (wh && wh.enabled && wh.url) {
+              webhookMeta = { url: wh.url, authHeader: wh.authHeader || '', enabled: true };
+            }
+          }
+        } catch (e) {}
+
+        // CRITICAL SECURITY RULE (Flaw 11): Physically strip 'answer', 'isCorrect', and 'explanation'
         const strippedQuestions = state.curatedQuestions.map(q => ({
           id: q.id,
-          q: q.stem,
-          options: q.options.map(o => o.text),
+          stem: q.stem,
+          options: q.options.map(o => ({ id: o.id, text: o.text })), // Options without isCorrect
           difficulty: q.difficulty || "Medium",
           topic: q.topic || "Computer Science"
         }));
 
         const payload = {
-          packageVersion: "1.0",
+          packageVersion: "2.0",
           packageType: "EXAM_SECURE",
           institution: "Avanthi Institute of Engineering & Technology",
           quizId,
@@ -9161,12 +10014,15 @@ Output Format Schema (STRICT JSON ONLY):
           durationMinutes: parseInt(document.getElementById('aiDurationInput')?.value, 10) || PILOT_EXAM.durationMinutes || 30,
           window: PILOT_EXAM.window || { mode: "unrestricted" },
           marking: PILOT_EXAM.marking || { positive: 1.0, negative: 0.0, passPercentage: 40.0 },
+          examSalt: secret.substring(0, 16),      // Flaw 10: Checksum signature salt
+          seedSalt: secret.substring(16, 24),     // Flaw 12: PRNG shuffling secret
+          submissionWebhook: webhookMeta,         // Flaw 9: Auto-embedded cloud submission webhook
           exportedAt: new Date().toISOString(),
           questions: strippedQuestions
         };
 
         downloadJsonFile(payload, `${subject}_${quizId}.exam.json`);
-        showToast("Secure Exam Exported", "Answers completely stripped. Safe for proctored lab examinations.");
+        showToast("Secure Exam Exported", "Answers completely stripped. Webhook & cryptographic salts embedded.");
       }
 
       // Tier 3: Faculty Master Key (.key.json) - Kept Strictly on Professor's Computer
@@ -9176,14 +10032,17 @@ Output Format Schema (STRICT JSON ONLY):
         const quizId = PILOT_EXAM.id || `key_${Date.now().toString(36)}`;
         const title = document.getElementById('aiQuizTitle')?.value.trim() || PILOT_EXAM.title || "Examination Key";
         const subject = document.getElementById('aiSubjectCode')?.value.trim() || PILOT_EXAM.subjectCode || "CS301PC";
+        const secret = generateQuizSecret();
 
         const keysMap = {};
         state.curatedQuestions.forEach(q => {
           const correctIdx = q.options.findIndex(o => o.isCorrect);
           const answerLetter = String.fromCharCode(65 + (correctIdx >= 0 ? correctIdx : 0));
+          const correctOpt = q.options[correctIdx >= 0 ? correctIdx : 0];
           keysMap[q.id] = {
             correctAnswer: answerLetter,
-            correctText: q.options[correctIdx >= 0 ? correctIdx : 0]?.text || '',
+            correctOptionId: correctOpt ? correctOpt.id : 'opt_1',
+            correctText: correctOpt?.text || '',
             explanation: q.explanation || '',
             topic: q.topic,
             difficulty: q.difficulty
@@ -9191,19 +10050,20 @@ Output Format Schema (STRICT JSON ONLY):
         });
 
         const payload = {
-          packageVersion: "1.0",
+          packageVersion: "2.0",
           packageType: "FACULTY_KEY",
           institution: "Avanthi Institute of Engineering & Technology",
           quizId,
           title,
           subject,
+          quizSecret: secret,                     // Flaw 10: Master secret for verification
           marking: PILOT_EXAM.marking || { positive: 1.0, negative: 0.0, passPercentage: 40.0 },
           exportedAt: new Date().toISOString(),
           keys: keysMap
         };
 
         downloadJsonFile(payload, `${subject}_${quizId}.key.json`);
-        showToast("Master Key Exported", "Saved .key.json for offline automated evaluation.");
+        showToast("Master Key Exported", "Saved .key.json with master secret for offline grading.");
       }
 
       function downloadJsonFile(data, filename) {
@@ -9301,9 +10161,9 @@ Output Format Schema (STRICT JSON ONLY):
             options = item.options.map((opt, oIdx) => {
               const text = typeof opt === 'string' ? opt : (opt.text || opt.label || '');
               const letter = String.fromCharCode(65 + oIdx);
-              const isCorrect = typeof opt === 'object' && opt.isCorrect !== undefined 
+              const isCorrect = typeof opt === 'object' && opt.isCorrect !== undefined && opt.isCorrect !== null
                 ? Boolean(opt.isCorrect) 
-                : (item.answer ? String(item.answer).toUpperCase() === letter : (oIdx === 0));
+                : (item.answer ? String(item.answer).toUpperCase() === letter : null);
               return { id: `opt_${oIdx + 1}`, text, isCorrect };
             });
           }
@@ -9619,6 +10479,92 @@ Output Format Schema (STRICT JSON ONLY):
 
         renderResultsHub();
         showToast("Filters Cleared", "Marksheet reset to show all cohorts and submissions.");
+      }
+
+
+      // =========================================================================
+      // FLAW 11: TWO-FILE OFFLINE GRADING WITH FACULTY MASTER KEY (.key.json)
+      // =========================================================================
+      function handleMasterKeyFile(input) {
+        const file = input && input.files ? input.files[0] : null;
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const keyData = JSON.parse(e.target.result);
+            if (!keyData.keys) throw new Error("Invalid Faculty Master Key file: 'keys' mapping missing.");
+
+            const allRecords = getAllResults();
+            if (allRecords.length === 0) {
+              alert("No student results currently in Gradebook. Please batch-import student result files first.");
+              return;
+            }
+
+            let gradedCount = 0;
+            const posMark = (keyData.marking?.positive !== undefined ? keyData.marking.positive : 1.0);
+            const negMark = (keyData.marking?.negative !== undefined ? keyData.marking.negative : 0.0);
+
+            allRecords.forEach(rec => {
+              if (rec.resultPayload && rec.resultPayload.breakdown) {
+                let score = 0;
+                let correctCount = 0;
+                let incorrectCount = 0;
+                const totalQ = rec.resultPayload.breakdown.length;
+
+                rec.resultPayload.breakdown.forEach(item => {
+                  const masterQ = keyData.keys[item.id] ||
+                                  keyData.keys[item.questionId] ||
+                                  Object.values(keyData.keys).find(k => k.correctText === item.correctText);
+                  if (masterQ) {
+                    item.correctOptionId = masterQ.correctOptionId;
+                    item.correctText = masterQ.correctText;
+                    item.explanation = masterQ.explanation;
+
+                    const isMatch = item.chosenOptionId
+                      ? item.chosenOptionId === masterQ.correctOptionId
+                      : (item.chosenText && masterQ.correctText && item.chosenText.trim() === masterQ.correctText.trim());
+
+                    if (isMatch) {
+                      score += posMark;
+                      correctCount++;
+                      item.isCorrect = true;
+                    } else if (item.chosenOptionId || (item.chosenText && item.chosenText !== 'Unattempted')) {
+                      score -= negMark;
+                      incorrectCount++;
+                      item.isCorrect = false;
+                    } else {
+                      item.isCorrect = false;
+                    }
+                  }
+                });
+
+                const pct = totalQ > 0 ? Number(((score / totalQ) * 100).toFixed(2)) : 0;
+                rec.score = `${score} / ${totalQ}`;
+                rec.percentage = `${pct}%`;
+                rec.isVerified = true;
+                rec.isGraded = true;
+                rec.resultPayload.performance.score = score;
+                rec.resultPayload.performance.percentage = pct;
+                rec.resultPayload.performance.correctCount = correctCount;
+                rec.resultPayload.performance.incorrectCount = incorrectCount;
+                rec.resultPayload.performance.isSealed = false;
+                gradedCount++;
+              }
+            });
+
+            saveImportedResults();
+            renderResultsHub();
+            if (typeof showToast === 'function') {
+              showToast("Master Key Applied!", `Graded and verified ${gradedCount} candidate submission(s).`);
+            }
+          } catch (err) {
+            console.error("Master Key evaluation error:", err);
+            alert("Failed to evaluate with Master Key: " + err.message);
+          }
+        };
+        reader.readAsText(file);
+        input.value = '';
       }
 
       function renderResultsHub() {
@@ -10032,11 +10978,6 @@ Output Format Schema (STRICT JSON ONLY):
         if (modal) modal.classList.add('hidden');
       }
 
-      function closeStudentInspection() {
-        const modal = document.getElementById('modalStudentInspection');
-        if (modal) modal.classList.add('hidden');
-      }
-
       // --- Component B: Official College CSV / Excel Exporter ---
       function exportOfficialMarksheetCsv() {
         const allRecords = getAllResults();
@@ -10299,6 +11240,7 @@ Output Format Schema (STRICT JSON ONLY):
       }
 
       function init() {
+        applyDemoModeUI();
         try {
           const savedTheme = localStorage.getItem('campusquiz_theme');
           if (savedTheme === 'dark') {
@@ -10368,6 +11310,15 @@ Output Format Schema (STRICT JSON ONLY):
         quickFillStudentDemo,
         quickFillFacultyDemo,
         switchStudentAuthTab,
+        isDemoMode,
+        setDemoMode,
+        handleStudentExamFile,
+        clearStudentLoadedExam,
+        purgeWorkstationSession,
+        copyCompactResultCode,
+        handleMasterKeyFile,
+        togglePublicComputerMode,
+        QRCode,
         loginStudent,
         registerStudent,
         logoutStudent,
