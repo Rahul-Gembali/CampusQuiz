@@ -22,6 +22,7 @@ function createMockElement(id, tag = 'div') {
     className: '',
     children: [],
     appendChild: function(c) { this.children.push(c); },
+    removeChild: function(c) { const i = this.children.indexOf(c); if (i !== -1) this.children.splice(i, 1); },
     classList: {
       _classes: new Set(),
       add: function(...cls) { cls.forEach(c => this._classes.add(c)); },
@@ -66,6 +67,7 @@ global.window = {
   pdfjsLib: global.pdfjsLib
 };
 global.document = {
+  body: createMockElement('body'),
   createElement: (tag) => createMockElement('el_' + Math.random(), tag),
   getElementById: (id) => {
     if (!elements[id]) {
@@ -324,13 +326,66 @@ assert(breakdownHtml.includes('A pointer stores the memory address of another va
 CampusQuiz.closeStudentInspection();
 assert(modal.classList.contains('hidden'), "5.11 closeStudentInspection hides inspector modal");
 
-console.log("\n===============================================================================");
-console.log(`TOTAL TESTS: ${totalTests} | PASSED: ${passedTests} | FAILED: ${totalTests - passedTests}`);
-console.log("===============================================================================\n");
+// =========================================================================
+// TEST SUITE 6: Cryptographic Checksum, Sealed Marksheet & State Persistence
+// =========================================================================
+console.log("\n--- 6. CRYPTOGRAPHIC CHECKSUMS, SEALED MARKSHEET & PERSISTENCE ---");
 
-if (passedTests === totalTests) {
-  console.log("ALL PROFILE PHOTO, 6 GROUPS & MARKSHEET INSPECTOR TESTS PASSED WITH 100% SUCCESS!");
-} else {
-  console.error("SOME TESTS FAILED!");
-  process.exit(1);
-}
+(async () => {
+  // Test 6.1: Deterministic key sorting in computeSignature (Flaw 5)
+  const sigA = await CampusQuiz.computeSignature('26A91A0500', 'quiz_1', { q1: 'opt_1', q2: 'opt_2', q3: 'opt_3' }, '2026-11-05T00:00:00.000Z', 'exam_salt_123');
+  const sigB = await CampusQuiz.computeSignature('26A91A0500', 'quiz_1', { q3: 'opt_3', q1: 'opt_1', q2: 'opt_2' }, '2026-11-05T00:00:00.000Z', 'exam_salt_123');
+  assert(sigA === sigB, "6.1 Deterministic key sorting produces identical signature regardless of key insertion order");
+
+  // Test 6.2: Keyed hash via examSalt (Flaw 6)
+  const sigC = await CampusQuiz.computeSignature('26A91A0500', 'quiz_1', { q1: 'opt_1', q2: 'opt_2', q3: 'opt_3' }, '2026-11-05T00:00:00.000Z', 'diff_salt_999');
+  assert(sigA !== sigC, "6.2 Keyed hash with distinct examSalt produces distinct cryptographic signatures");
+
+  // Test 6.3: Sealed Exam Marksheet CSV Export (Flaw 9)
+  let exportedCsvContent = '';
+  global.Blob = function(content) {
+    if (Array.isArray(content)) exportedCsvContent = content.join('');
+  };
+  global.URL = { createObjectURL: () => 'blob://download', revokeObjectURL: () => {} };
+
+  mockLocalStorage.setItem('campusquiz_attempts', JSON.stringify([
+    {
+      rollNo: '26A91A0500',
+      name: 'Rahul Gembali',
+      branch: 'CSE',
+      score: '15 / 20 (Sealed)',
+      isSealed: true,
+      timestamp: '2026-11-05T10:00:00.000Z'
+    }
+  ]));
+
+  CampusQuiz.exportOfficialMarksheetCsv();
+  assert(exportedCsvContent.includes('"Sealed (Pending)"'), "6.3a Marksheet CSV exports Score as 'Sealed (Pending)' for sealed exams");
+  assert(exportedCsvContent.includes('"N/A"'), "6.3b Marksheet CSV exports Percentage as 'N/A' for sealed exams");
+  assert(exportedCsvContent.includes('SEALED'), "6.3c Marksheet CSV exports Status as 'SEALED'");
+
+  // Test 6.4: Clear All Results Storage Scope (Flaw 8)
+  mockLocalStorage.setItem('campusquiz_test_attempts', JSON.stringify([{ rollNo: 'TEST01' }]));
+  mockLocalStorage.setItem('campusquiz_attempts', JSON.stringify([{ rollNo: 'TEST01' }]));
+  mockLocalStorage.setItem('campusquiz_imported_results', JSON.stringify([{ rollNo: 'TEST01' }]));
+
+  CampusQuiz.clearAllResults();
+  assert(!mockLocalStorage.getItem('campusquiz_test_attempts'), "6.4a clearAllResults cleanly removes campusquiz_test_attempts");
+  assert(!mockLocalStorage.getItem('campusquiz_attempts'), "6.4b clearAllResults cleanly removes campusquiz_attempts");
+  assert(!mockLocalStorage.getItem('campusquiz_imported_results'), "6.4c clearAllResults cleanly removes campusquiz_imported_results");
+
+  // Test 6.5: User Registry profile tracking for double-submission (Flaw 10)
+  const userReg = CampusQuiz.getUserRegistry();
+  assert(userReg && userReg.students && userReg.students['26A91A0500'], "6.5 User registry contains student profiles for double-submission tracking");
+
+  console.log("\n===============================================================================");
+  console.log(`TOTAL TESTS: ${totalTests} | PASSED: ${passedTests} | FAILED: ${totalTests - passedTests}`);
+  console.log("===============================================================================\n");
+
+  if (passedTests === totalTests) {
+    console.log("ALL PROFILE PHOTO, 6 GROUPS & MARKSHEET INSPECTOR TESTS PASSED WITH 100% SUCCESS!");
+  } else {
+    console.error("SOME TESTS FAILED!");
+    process.exit(1);
+  }
+})();

@@ -3862,6 +3862,7 @@
           </button>
           <button 
             type="submit" 
+            id="btnFacultyGateSubmit"
             class="px-4 py-2 rounded-lg bg-red-800 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer shadow-sm"
           >
             Unlock Portal
@@ -4466,6 +4467,7 @@ int main() {
 
       const STORAGE_ACTIVE_KEY = 'campusquiz_active_session';
       const STORAGE_GRADEBOOK_KEY = 'campusquiz_attempts';
+      const STORAGE_ATTEMPTS_KEY = 'campusquiz_test_attempts';
       const STORAGE_PASSKEY_KEY = 'campusquiz_faculty_passkey';
       const STORAGE_FACULTY_CONFIG = 'campusquiz_faculty_config';
       const STORAGE_ACTIVE_EXAM = 'campusquiz_active_exam';
@@ -5979,11 +5981,49 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         document.getElementById('modalFacultyGate').classList.add('hidden');
       }
 
+      let facultyPinFailedAttempts = 0;
+      let facultyPinLockoutUntil = 0;
+      let facultyPinLockoutTimer = null;
+
+      function updateFacultyGateCooldownUI() {
+        if (typeof document === 'undefined') return;
+        const pinInput = document.getElementById('facultyPinInput');
+        const errorMsg = document.getElementById('facultyPinError');
+        const submitBtn = document.getElementById('btnFacultyGateSubmit') || (typeof document.querySelector === 'function' ? document.querySelector('#modalFacultyGate button[type="submit"]') : null);
+        const now = Date.now();
+
+        if (now < facultyPinLockoutUntil) {
+          const remainingSec = Math.ceil((facultyPinLockoutUntil - now) / 1000);
+          if (pinInput) pinInput.disabled = true;
+          if (submitBtn) submitBtn.disabled = true;
+          if (errorMsg) {
+            errorMsg.innerHTML = `<strong>Security Lockout:</strong> Too many failed attempts. PIN input locked for <strong>${remainingSec}s</strong>.`;
+            errorMsg.classList.remove('hidden');
+          }
+        } else {
+          if (facultyPinLockoutTimer) {
+            clearInterval(facultyPinLockoutTimer);
+            facultyPinLockoutTimer = null;
+          }
+          if (pinInput) pinInput.disabled = false;
+          if (submitBtn) submitBtn.disabled = false;
+          if (errorMsg && errorMsg.textContent.includes('Security Lockout')) {
+            errorMsg.classList.add('hidden');
+          }
+        }
+      }
+
       function verifyFacultyPin() {
         if (state.currentView === 'exam-canvas' && !state.isSubmitted && state.timerInterval) {
           alert("Administrative access is locked during an active student examination.");
           return;
         }
+
+        if (Date.now() < facultyPinLockoutUntil) {
+          updateFacultyGateCooldownUI();
+          return;
+        }
+
         const idInput = document.getElementById('facultyIdInput');
         const pinInput = document.getElementById('facultyPinInput');
         const errorMsg = document.getElementById('facultyPinError');
@@ -5994,12 +6034,13 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         const reg = typeof getUserRegistry === 'function' ? getUserRegistry() : null;
         const facultyAdmin = reg && reg.faculty ? reg.faculty['FACULTY_ADMIN'] : null;
         const demoActive = isDemoMode();
+        const enteredSaltedHash = hashPassword(enteredPin, 'FACULTY_ADMIN');
 
         // Flaw 1: Demo Mode Bypass (active only when ?demo=true or demo toggle enabled)
         if (demoActive) {
           const isUniversalAdmin = (
             (enteredId === 'FACULTY_ADMIN' || enteredId === 'FACULTY@AVANTHI.EDU.IN' || !enteredId) &&
-            (enteredPin === 'Avanthi#Faculty2026' || (facultyAdmin && facultyAdmin.passwordHash === hashPassword(enteredPin, 'FACULTY_ADMIN')))
+            (enteredPin === 'Avanthi#Faculty2026' || (facultyAdmin && facultyAdmin.passwordHash === enteredSaltedHash))
           );
           const isLegacyPasskey = (
             enteredPin === storedPasskey || 
@@ -6010,20 +6051,50 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             enteredId === 'AVANTHI2026'
           );
           if (isUniversalAdmin || isLegacyPasskey) {
+            facultyPinFailedAttempts = 0;
+            facultyPinLockoutUntil = 0;
+            if (facultyPinLockoutTimer) {
+              clearInterval(facultyPinLockoutTimer);
+              facultyPinLockoutTimer = null;
+            }
+            updateFacultyGateCooldownUI();
             grantFacultySession();
             return;
           }
         }
 
-        // Flaw 2: Production Mode - Zero Backdoors (reject '1234', '1985', 'avanthi2026')
+        // Flaw 2: Production Mode - Zero Backdoors (reject '1234', '1985', 'avanthi2026', and Avanthi#Faculty2026)
+        if (enteredPin === 'avanthi2026' || enteredPin === '1985' || enteredPin === '1234' || enteredPin === 'Avanthi#Faculty2026') {
+          facultyPinFailedAttempts++;
+          if (facultyPinFailedAttempts >= 5) {
+            facultyPinLockoutUntil = Date.now() + 30000;
+            facultyPinFailedAttempts = 0;
+            updateFacultyGateCooldownUI();
+            if (facultyPinLockoutTimer) clearInterval(facultyPinLockoutTimer);
+            facultyPinLockoutTimer = setInterval(updateFacultyGateCooldownUI, 1000);
+            return;
+          }
+          if (errorMsg) {
+            errorMsg.textContent = "Invalid Master PIN or Faculty Credentials.";
+            errorMsg.classList.remove('hidden');
+          }
+          if (pinInput) {
+            pinInput.value = '';
+            pinInput.focus();
+          }
+          return;
+        }
+
         // First-Time Setup: If no master PIN has been set locally, prompt professor to create one
-        if (!storedPasskey && (!facultyAdmin || !facultyAdmin.passwordHash)) {
+        if (!storedPasskey) {
           if (enteredPin.length >= 6) {
             const saltedMasterPin = hashPassword(enteredPin, 'FACULTY_ADMIN');
             localStorage.setItem(STORAGE_PASSKEY_KEY, saltedMasterPin);
             if (typeof showToast === 'function') {
               showToast("Master PIN Configured", "Private institutional Master PIN established successfully.");
             }
+            facultyPinFailedAttempts = 0;
+            facultyPinLockoutUntil = 0;
             grantFacultySession();
             return;
           } else {
@@ -6035,18 +6106,30 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           }
         }
 
-        // Validate strictly against salted master PIN or registered faculty password
-        const enteredSaltedHash = hashPassword(enteredPin, 'FACULTY_ADMIN');
-        const isMasterMatch = (storedPasskey && (storedPasskey === enteredSaltedHash || storedPasskey === enteredPin)) ||
-                              (facultyAdmin && facultyAdmin.passwordHash === enteredSaltedHash);
+        // Validate strictly against stored master PIN in production mode (FACULTY_ADMIN password strictly disallowed in production)
+        const isMasterMatch = storedPasskey && (storedPasskey === enteredSaltedHash || storedPasskey === enteredPin);
 
         if (isMasterMatch) {
+          facultyPinFailedAttempts = 0;
+          facultyPinLockoutUntil = 0;
+          if (facultyPinLockoutTimer) {
+            clearInterval(facultyPinLockoutTimer);
+            facultyPinLockoutTimer = null;
+          }
+          updateFacultyGateCooldownUI();
           grantFacultySession();
         } else {
+          facultyPinFailedAttempts++;
+          if (facultyPinFailedAttempts >= 5) {
+            facultyPinLockoutUntil = Date.now() + 30000;
+            facultyPinFailedAttempts = 0;
+            updateFacultyGateCooldownUI();
+            if (facultyPinLockoutTimer) clearInterval(facultyPinLockoutTimer);
+            facultyPinLockoutTimer = setInterval(updateFacultyGateCooldownUI, 1000);
+            return;
+          }
           if (errorMsg) {
-            errorMsg.textContent = demoActive
-              ? "Invalid credentials. Demo master password: Avanthi#Faculty2026 or passkey: avanthi2026."
-              : "Access Denied: Invalid Master PIN or Faculty Credentials.";
+            errorMsg.textContent = "Invalid Master PIN or Faculty Credentials.";
             errorMsg.classList.remove('hidden');
           }
           if (pinInput) {
@@ -6057,6 +6140,13 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
       }
 
       function grantFacultySession() {
+        facultyPinFailedAttempts = 0;
+        facultyPinLockoutUntil = 0;
+        if (facultyPinLockoutTimer) {
+          clearInterval(facultyPinLockoutTimer);
+          facultyPinLockoutTimer = null;
+        }
+        updateFacultyGateCooldownUI();
         state.isFacultyUnlocked = true;
         state.loggedFaculty = {
           id: 'FACULTY_ADMIN',
@@ -6366,6 +6456,22 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         }
       }
 
+      function checkExistingSession() {
+        try {
+          const stuRaw = localStorage.getItem(STORAGE_STUDENT_SESSION);
+          if (stuRaw) {
+            state.loggedStudent = JSON.parse(stuRaw);
+            if (state.loggedStudent && state.loggedStudent.rollNo) {
+              Object.defineProperty(state.loggedStudent, 'rollNo', {
+                writable: false,
+                configurable: false
+              });
+            }
+          }
+        } catch (e) {}
+        return state.loggedStudent;
+      }
+
       function checkActiveAuthSession() {
         initUserRegistry();
 
@@ -6378,13 +6484,8 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           }
         } catch (e) {}
 
-        // 2. Check Student Session
-        try {
-          const stuRaw = localStorage.getItem(STORAGE_STUDENT_SESSION);
-          if (stuRaw) {
-            state.loggedStudent = JSON.parse(stuRaw);
-          }
-        } catch (e) {}
+        // 2. Check Student Session (Flaw 12: Maintain rollNo immutability on page refresh)
+        checkExistingSession();
 
         syncHeaderUserPills();
         syncStudentAuthViewUI();
@@ -6627,6 +6728,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
       }
 
       function quickFillFacultyDemo() {
+        setDemoMode(true);
         const idInp = document.getElementById('facultyIdInput');
         const passInp = document.getElementById('facultyPinInput');
         if (idInp) idInp.value = 'FACULTY_ADMIN';
@@ -7159,14 +7261,12 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
               throw new Error("Invalid exam package: questions array is missing or empty.");
             }
 
-            // Cryptographic Checksum Verification (Domain 2.2)
-            if (data.packageChecksum) {
-              const expectedChecksum = sha256Sync(`${data.quizId}:${data.durationMinutes}:${data.maxTabSwitches || 3}:${JSON.stringify(data.questions)}`);
-              if (data.packageChecksum !== expectedChecksum) {
-                alert("Corrupted or Tampered Exam Package — Contact Invigilator");
-                if (input) input.value = '';
-                return;
-              }
+            // Mandatory Cryptographic Package Checksum Verification (Flaw 4)
+            const expectedChecksum = sha256Sync(`${data.quizId}:${data.durationMinutes}:${data.maxTabSwitches || 3}:${JSON.stringify(data.questions)}`);
+            if (!data.packageChecksum || data.packageChecksum !== expectedChecksum) {
+              alert("Corrupted or Unverified Exam Package — Missing Integrity Checksum");
+              if (input) input.value = '';
+              return;
             }
 
             // Practice Exam Warning Banner (Domain 2.3)
@@ -7303,13 +7403,16 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           return;
         }
 
-        // Double-Submission Prevention Check (TC-7.3)
+        // Flaw 10: Persistent Double-Submission Prevention Check
+        const reg = typeof getUserRegistry === 'function' ? getUserRegistry() : null;
+        const regStudent = reg && reg.students ? reg.students[rollVal] : null;
+        const hasCompletedInRegistry = regStudent && Array.isArray(regStudent.completedExams) && regStudent.completedExams.includes(PILOT_EXAM.id);
         const existingAttempt = getStoredAttempts().find(a => 
           a.rollNo && a.rollNo.toUpperCase() === rollVal && (!a.quizId || a.quizId === PILOT_EXAM.id)
         );
-        if (existingAttempt) {
-          alert(`Exam Already Submitted\n\nCandidate ${rollVal} has already completed and submitted this examination.\nScore: ${existingAttempt.score} (${existingAttempt.percentage}).`);
-          if (existingAttempt.resultPayload) {
+        if (hasCompletedInRegistry || existingAttempt) {
+          alert(`Exam Already Submitted\n\nCandidate ${rollVal} has already completed and submitted this examination.`);
+          if (existingAttempt && existingAttempt.resultPayload) {
             renderResultView(existingAttempt.resultPayload);
             switchView('exam-result');
           }
@@ -7749,28 +7852,43 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         document.getElementById('modalSubmitConfirmation').classList.add('hidden');
       }
 
-      async function computeSignature(roll, arg2, arg3, arg4) {
+      async function computeSignature(roll, arg2, arg3, arg4, arg5) {
         let quizId = '';
         let selectedOptions = {};
         let submittedAt = '';
+        let examSalt = '';
 
         if (typeof arg3 === 'object' && arg3 !== null) {
-          // Signature: (roll, quizId, selectedOptions, submittedAt)
+          // Modern signature: (roll, quizId, selectedOptions, submittedAt, examSalt)
           quizId = arg2;
           selectedOptions = arg3;
           submittedAt = arg4 || new Date().toISOString();
+          examSalt = arg5 !== undefined ? arg5 : (PILOT_EXAM && PILOT_EXAM.examSalt ? PILOT_EXAM.examSalt : '');
         } else if (typeof arg2 === 'string' && (arg2.startsWith('exam_') || arg2.startsWith('key_') || arg2.startsWith('loaded_') || arg2.includes('-') || arg2.length > 5)) {
           quizId = arg2;
           selectedOptions = arg3 || {};
           submittedAt = arg4 || new Date().toISOString();
+          examSalt = arg5 !== undefined ? arg5 : (PILOT_EXAM && PILOT_EXAM.examSalt ? PILOT_EXAM.examSalt : '');
         } else {
-          // Legacy call pattern: (roll, score, submittedAt, quizId)
+          // Legacy call pattern: (roll, score, submittedAt, quizId, examSalt)
           quizId = arg4 || (PILOT_EXAM ? PILOT_EXAM.id : 'exam');
           selectedOptions = arg2; // score or answers
           submittedAt = arg3 || new Date().toISOString();
+          examSalt = arg5 !== undefined ? arg5 : (PILOT_EXAM && PILOT_EXAM.examSalt ? PILOT_EXAM.examSalt : '');
         }
 
-        const rawPayload = `${roll}:${quizId}:${typeof selectedOptions === 'string' ? selectedOptions : JSON.stringify(selectedOptions)}:${submittedAt}`;
+        // Flaw 5: Deterministic Key Sorting for Result Checksums
+        let normalizedOptions;
+        if (typeof selectedOptions === 'object' && selectedOptions !== null) {
+          const sortedKeys = Object.keys(selectedOptions).sort();
+          normalizedOptions = {};
+          sortedKeys.forEach(k => { normalizedOptions[k] = selectedOptions[k]; });
+        } else {
+          normalizedOptions = selectedOptions;
+        }
+
+        // Flaw 6: Keyed Hash via Exam Salt
+        const rawPayload = `${roll}:${quizId}:${typeof normalizedOptions === 'string' ? normalizedOptions : JSON.stringify(normalizedOptions)}:${submittedAt}:${examSalt || ''}`;
         if (typeof sha256Sync === 'function') {
           return sha256Sync(rawPayload);
         }
@@ -7857,8 +7975,9 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         const forcedSubmission = Boolean(options.forcedSubmission);
         const forcedReason = options.reason || null;
 
-        // Anti-Forgery Signature (Domain 3.1)
-        const checksum = await computeSignature(state.student.rollNo, PILOT_EXAM.id, state.studentAnswers, submittedAtISO);
+        const examSalt = PILOT_EXAM.examSalt || '';
+        // Anti-Forgery Signature (Domain 3.1 & Flaws 5 & 6)
+        const checksum = await computeSignature(state.student.rollNo, PILOT_EXAM.id, state.studentAnswers, submittedAtISO, examSalt);
 
         const resultPayload = {
           schemaVersion: "1.0",
@@ -7866,6 +7985,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           quizId: PILOT_EXAM.id,
           quizTitle: PILOT_EXAM.title,
           isSealedExam: isSealedExam,
+          examSalt: examSalt,
           selectedOptions: { ...state.studentAnswers },
           student: {
             rollNumber: state.student.rollNo,
@@ -7916,6 +8036,23 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           isSealed: isSealedExam,
           resultPayload: resultPayload
         });
+
+        // Flaw 10: Persistent Double-Submission Registry
+        try {
+          const reg = getUserRegistry();
+          const studentRoll = state.student.rollNo ? state.student.rollNo.toUpperCase() : '';
+          if (reg && reg.students && reg.students[studentRoll]) {
+            if (!Array.isArray(reg.students[studentRoll].completedExams)) {
+              reg.students[studentRoll].completedExams = [];
+            }
+            if (!reg.students[studentRoll].completedExams.includes(PILOT_EXAM.id)) {
+              reg.students[studentRoll].completedExams.push(PILOT_EXAM.id);
+            }
+            saveUserRegistry(reg);
+          }
+        } catch (e) {
+          console.warn("Could not record completed exam in registry:", e);
+        }
 
         dispatchCloudWebhook(resultPayload);
         clearActiveSession();
@@ -7995,11 +8132,12 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           breakdownSection.classList.toggle('hidden', isSealedExam);
         }
 
-        // Domain 5.2: 3-minute post-submission auto-logout timer on shared lab PCs
-        if (postSubmissionTimeout) clearTimeout(postSubmissionTimeout);
-        postSubmissionTimeout = setTimeout(() => {
-          purgeWorkstationSession(true);
-        }, 3 * 60 * 1000);
+        // Flaw 11: Disable aggressive 3-minute post-submission auto-logout timer on shared lab PCs
+        // Result slip and QR code remain on screen until student/invigilator explicitly clicks "End Session & Reset Workstation"
+        if (postSubmissionTimeout) {
+          clearTimeout(postSubmissionTimeout);
+          postSubmissionTimeout = null;
+        }
 
         const violationSec = document.getElementById('resViolationSection');
         const violationList = document.getElementById('resViolationList');
@@ -8148,7 +8286,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
 
       function getStoredAttempts() {
         try {
-          const raw = localStorage.getItem(STORAGE_GRADEBOOK_KEY);
+          const raw = localStorage.getItem(STORAGE_ATTEMPTS_KEY) || localStorage.getItem(STORAGE_GRADEBOOK_KEY);
           return raw ? JSON.parse(raw) : [];
         } catch (e) {
           console.error("Local storage read error", e);
@@ -8160,7 +8298,9 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         try {
           const existing = getStoredAttempts();
           existing.unshift(attempt);
-          localStorage.setItem(STORAGE_GRADEBOOK_KEY, JSON.stringify(existing));
+          const serialized = JSON.stringify(existing);
+          localStorage.setItem(STORAGE_ATTEMPTS_KEY, serialized);
+          localStorage.setItem(STORAGE_GRADEBOOK_KEY, serialized);
         } catch (e) {
           console.error("Local storage write error", e);
         }
@@ -8443,7 +8583,12 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         facultyInactivityTimeout = setTimeout(() => {
           try {
             sessionStorage.removeItem(STORAGE_FACULTY_CONFIG);
-            if (localStorage.getItem('campusquiz_public_lab_mode') === 'true') {
+            const isNonLocalhost = typeof window !== 'undefined' && window.location && 
+                                   window.location.hostname !== 'localhost' && 
+                                   window.location.hostname !== '127.0.0.1';
+            const isPublicLab = localStorage.getItem('campusquiz_public_lab_mode') === 'true' || isNonLocalhost;
+            if (isPublicLab) {
+              localStorage.removeItem(STORAGE_FACULTY_CONFIG);
               if (state.aiConfig) {
                 state.aiConfig.extractor.key = '';
                 state.aiConfig.generator.key = '';
@@ -10368,6 +10513,8 @@ Output Format Schema (STRICT JSON ONLY):
         const quizId = PILOT_EXAM.id || `quiz_${Date.now().toString(36)}`;
         const title = document.getElementById('aiQuizTitle')?.value.trim() || PILOT_EXAM.title || "Academic Practice Package";
         const subject = document.getElementById('aiSubjectCode')?.value.trim() || PILOT_EXAM.subjectCode || "CS301PC";
+        const durationMinutes = parseInt(document.getElementById('aiDurationInput')?.value, 10) || PILOT_EXAM.durationMinutes || 30;
+        const maxTabSwitches = PILOT_EXAM.maxTabSwitches || 3;
 
         const questionsWithAnswers = state.curatedQuestions.map(q => {
           const correctIdx = q.options.findIndex(o => o.isCorrect);
@@ -10383,6 +10530,8 @@ Output Format Schema (STRICT JSON ONLY):
           };
         });
 
+        const packageChecksum = sha256Sync(`${quizId}:${durationMinutes}:${maxTabSwitches}:${JSON.stringify(questionsWithAnswers)}`);
+
         const payload = {
           packageVersion: "1.0",
           packageType: "PRACTICE",
@@ -10390,7 +10539,9 @@ Output Format Schema (STRICT JSON ONLY):
           quizId,
           title,
           subject,
-          durationMinutes: parseInt(document.getElementById('aiDurationInput')?.value, 10) || PILOT_EXAM.durationMinutes || 30,
+          durationMinutes,
+          maxTabSwitches,
+          packageChecksum,
           marking: PILOT_EXAM.marking || { positive: 1.0, negative: 0.0, passPercentage: 40.0 },
           exportedAt: new Date().toISOString(),
           questions: questionsWithAnswers
@@ -10418,12 +10569,15 @@ Output Format Schema (STRICT JSON ONLY):
         if (!PILOT_EXAM.id) {
           PILOT_EXAM.id = `exam_${Date.now().toString(36)}`;
         }
+        if (!PILOT_EXAM.examSecret) {
+          PILOT_EXAM.examSecret = generateQuizSecret();
+        }
         const quizId = PILOT_EXAM.id;
         const title = document.getElementById('aiQuizTitle')?.value.trim() || PILOT_EXAM.title || "Institutional Examination";
         const subject = document.getElementById('aiSubjectCode')?.value.trim() || PILOT_EXAM.subjectCode || "CS301PC";
         const durationMinutes = parseInt(document.getElementById('aiDurationInput')?.value, 10) || PILOT_EXAM.durationMinutes || 30;
         const maxTabSwitches = PILOT_EXAM.maxTabSwitches || 3;
-        const secret = generateQuizSecret();
+        const secret = PILOT_EXAM.examSecret;
 
         // Flaw 9: Embed configured submission webhook directly into package metadata
         let webhookMeta = null;
@@ -10479,10 +10633,13 @@ Output Format Schema (STRICT JSON ONLY):
         if (!PILOT_EXAM.id) {
           PILOT_EXAM.id = `exam_${Date.now().toString(36)}`;
         }
+        if (!PILOT_EXAM.examSecret) {
+          PILOT_EXAM.examSecret = generateQuizSecret();
+        }
         const quizId = PILOT_EXAM.id;
         const title = document.getElementById('aiQuizTitle')?.value.trim() || PILOT_EXAM.title || "Examination Key";
         const subject = document.getElementById('aiSubjectCode')?.value.trim() || PILOT_EXAM.subjectCode || "CS301PC";
-        const secret = generateQuizSecret();
+        const secret = PILOT_EXAM.examSecret;
 
         const keysMap = {};
         state.curatedQuestions.forEach(q => {
@@ -10506,6 +10663,7 @@ Output Format Schema (STRICT JSON ONLY):
           quizId,
           title,
           subject,
+          examSalt: secret.substring(0, 16),      // Flaw 6: Bound examSalt for keyed hashing
           quizSecret: secret,                     // Flaw 10: Master secret for verification
           marking: PILOT_EXAM.marking || { positive: 1.0, negative: 0.0, passPercentage: 40.0 },
           exportedAt: new Date().toISOString(),
@@ -10522,9 +10680,11 @@ Output Format Schema (STRICT JSON ONLY):
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        if (document.body && document.body.appendChild && document.body.removeChild) {
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
         URL.revokeObjectURL(url);
       }
 
@@ -10860,11 +11020,13 @@ Output Format Schema (STRICT JSON ONLY):
           return false;
         }
         try {
+          const salt = payload.examSalt || (PILOT_EXAM ? PILOT_EXAM.examSalt : '') || '';
           const expected = await computeSignature(
             payload.student.rollNumber || payload.student.rollNo,
             payload.quizId,
             payload.selectedOptions || (payload.performance ? payload.performance.score : 0),
-            payload.timing.submittedAt
+            payload.timing.submittedAt,
+            salt
           );
           return expected === payload.checksum;
         } catch (e) {
@@ -11025,7 +11187,19 @@ Output Format Schema (STRICT JSON ONLY):
               }
             });
 
+            // Flaw 7: Persist Graded Scores to BOTH STORAGE_IMPORTED_RESULTS_KEY and STORAGE_ATTEMPTS_KEY
+            const importedUpdated = allRecords.filter(r => r.sourceType === 'imported');
+            if (importedUpdated.length > 0) {
+              state.importedAttempts = importedUpdated;
+            }
             saveImportedResults();
+
+            const localUpdated = allRecords.filter(r => r.sourceType === 'local');
+            if (localUpdated.length > 0) {
+              const localSerialized = JSON.stringify(localUpdated);
+              localStorage.setItem(STORAGE_ATTEMPTS_KEY, localSerialized);
+              localStorage.setItem(STORAGE_GRADEBOOK_KEY, localSerialized);
+            }
             renderResultsHub();
             if (typeof showToast === 'function') {
               showToast("Master Key Applied!", `Graded and verified ${gradedCount} candidate submission(s).`);
@@ -11463,7 +11637,13 @@ Output Format Schema (STRICT JSON ONLY):
         const quizId = PILOT_EXAM.id || "Assessment";
 
         // Sort descending by score for official ranking
-        const sorted = [...allRecords].sort((a, b) => (parseFloat(b.score) || 0) - (parseFloat(a.score) || 0));
+        const sorted = [...allRecords].sort((a, b) => {
+          const aSealed = Boolean(a.isSealed || String(a.score).includes('Sealed') || (a.fullPayload && (a.fullPayload.isSealedExam || a.fullPayload.performance?.isSealed)));
+          const bSealed = Boolean(b.isSealed || String(b.score).includes('Sealed') || (b.fullPayload && (b.fullPayload.isSealedExam || b.fullPayload.performance?.isSealed)));
+          if (aSealed && !bSealed) return 1;
+          if (!aSealed && bSealed) return -1;
+          return (parseFloat(b.score) || 0) - (parseFloat(a.score) || 0);
+        });
 
         const headers = [
           "Rank",
@@ -11483,8 +11663,20 @@ Output Format Schema (STRICT JSON ONLY):
         ];
 
         const rows = sorted.map((r, idx) => {
-          const pct = parseFloat(r.percentageNum || r.percentage) || 0;
-          const status = pct >= passThreshold ? "PASS" : "FAIL";
+          // Flaw 9: Fix Marksheet CSV Export on Sealed Records
+          const isSealed = Boolean(r.isSealed || String(r.score).includes('Sealed') || (r.fullPayload && (r.fullPayload.isSealedExam || r.fullPayload.performance?.isSealed)));
+          let scoreCol, pctCol, statusCol;
+          if (isSealed) {
+            scoreCol = `"Sealed (Pending)"`;
+            pctCol = `"N/A"`;
+            statusCol = "SEALED";
+          } else {
+            const pct = parseFloat(r.percentageNum || r.percentage) || 0;
+            scoreCol = parseFloat(r.score) || 0;
+            pctCol = `"${pct.toFixed(2)}%"`;
+            statusCol = pct >= passThreshold ? "PASS" : "FAIL";
+          }
+
           const tamperStr = r.tamperVerified !== false ? "VERIFIED_AUTHENTIC" : "TAMPER_WARNING";
           const modeStr = r.forcedSubmission ? "FORCED_TIMEOUT" : "NORMAL";
 
@@ -11493,10 +11685,10 @@ Output Format Schema (STRICT JSON ONLY):
             `"${r.rollNo}"`,
             `"${(r.name || '').replace(/"/g, '""')}"`,
             `"${(r.branch || '').replace(/"/g, '""')}"`,
-            parseFloat(r.score) || 0,
+            scoreCol,
             r.maxMarks || 5.0,
-            `${pct.toFixed(2)}%`,
-            status,
+            pctCol,
+            statusCol,
             `"${r.timeSpent || ''}"`,
             r.tabSwitches || 0,
             modeStr,
@@ -11513,9 +11705,11 @@ Output Format Schema (STRICT JSON ONLY):
         const a = document.createElement("a");
         a.href = url;
         a.download = `${subjectCode}_${quizId}_Official_Marksheet.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        if (document.body && document.body.appendChild && document.body.removeChild) {
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
         URL.revokeObjectURL(url);
 
         showToast("Official Marksheet Exported", `Downloaded ${sorted.length} student records as Excel-ready CSV.`);
@@ -11524,8 +11718,10 @@ Output Format Schema (STRICT JSON ONLY):
       function clearAllResults() {
         if (!confirm("Are you sure you want to clear all student examination records from this browser? This action cannot be undone.")) return;
         localStorage.removeItem(STORAGE_GRADEBOOK_KEY);
+        localStorage.removeItem(STORAGE_ATTEMPTS_KEY);
         localStorage.removeItem(STORAGE_IMPORTED_RESULTS_KEY);
         state.importedAttempts = [];
+        state.curatedQuestions = [];
         renderResultsHub();
         renderFacultyDashboard();
         showToast("Records Cleared", "All marksheet data wiped cleanly.");
@@ -11787,6 +11983,12 @@ Output Format Schema (STRICT JSON ONLY):
         getUserRegistry,
         saveUserRegistry,
         checkActiveAuthSession,
+        checkExistingSession,
+        computeSignature,
+        verifyResultChecksum,
+        getAllResults,
+        getStoredAttempts,
+        saveAttemptToStorage,
         quickFillStudentDemo,
         quickFillFacultyDemo,
         switchStudentAuthTab,

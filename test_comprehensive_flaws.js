@@ -185,6 +185,29 @@ const mockFileInput = {
   ]
 };
 
+// Test 3.3: Missing packageChecksum triggers integrity alert (Flaw 4)
+let alertCaptured = '';
+const oldAlert = global.alert;
+global.alert = (msg) => { alertCaptured = msg; };
+global.FileReader = function() {
+  this.readAsText = function(f) {
+    if (this.onload) this.onload({ target: { result: f._content } });
+  };
+};
+
+const corruptedPackage = {
+  quizId: "exam_test_1",
+  durationMinutes: 15,
+  questions: [{ id: "q1", stem: "Test Question", options: [{ id: "opt_1", text: "A" }] }]
+  // NO packageChecksum!
+};
+CQ.handleStudentExamFile({
+  files: [{ name: "test.exam.json", _content: JSON.stringify(corruptedPackage) }],
+  value: 'test.exam.json'
+});
+assert(alertCaptured.includes("Corrupted or Unverified Exam Package — Missing Integrity Checksum"), "3.3 Missing packageChecksum is strictly rejected with alert");
+global.alert = oldAlert;
+
 // -------------------------------------------------------------
 // SUITE 4: Flaw 8: Offline Result Collection (Compact Code & QR Engine)
 // -------------------------------------------------------------
@@ -208,6 +231,42 @@ assert(qrRendered === true, "4.3 Embedded QRCode.renderCanvas executes without e
 // -------------------------------------------------------------
 console.log("\n--- SUITE 5: TWO-FILE MASTER KEY GRADING (Flaw 11) ---");
 assert(typeof CQ.handleMasterKeyFile === 'function', "5.1 handleMasterKeyFile is exposed on CampusQuiz");
+
+// Test 5.2: Two-file offline grading recalculates strictly from chosen options & persists to both keys (Flaws 6 & 7)
+mockLocalStorage.setItem('campusquiz_attempts', JSON.stringify([
+  {
+    rollNo: '26A91A0500',
+    name: 'Rahul Gembali',
+    quizId: 'exam_cs101',
+    score: '0 / 2 (Sealed)',
+    isSealed: true,
+    fullPayload: {
+      quizId: 'exam_cs101',
+      student: { rollNumber: '26A91A0500', name: 'Rahul Gembali' },
+      selectedOptions: { q1: 'opt_1', q2: 'opt_4' },
+      performance: { score: 999 } // Tampered self-reported score!
+    }
+  }
+]));
+
+const mockMasterKey = {
+  packageType: "FACULTY_KEY",
+  quizId: 'exam_cs101',
+  marking: { positive: 1.0, negative: 0.0 },
+  keys: {
+    q1: { correctOptionId: 'opt_1', correctText: 'Correct 1' },
+    q2: { correctOptionId: 'opt_2', correctText: 'Correct 2' }
+  }
+};
+
+CQ.handleMasterKeyFile({
+  files: [{ name: "cs101.key.json", _content: JSON.stringify(mockMasterKey) }],
+  value: 'cs101.key.json'
+});
+
+const updatedAttempts = JSON.parse(mockLocalStorage.getItem('campusquiz_test_attempts') || mockLocalStorage.getItem('campusquiz_attempts'));
+assert(updatedAttempts && updatedAttempts[0].score === '1 / 2', "5.2 Master Key grades strictly by student chosen options (ignoring 999 self-reported score)");
+assert(mockLocalStorage.getItem('campusquiz_test_attempts') !== null, "5.3 Graded scores persisted to STORAGE_ATTEMPTS_KEY ('campusquiz_test_attempts')");
 
 // -------------------------------------------------------------
 // SUITE 6: Flaw 13: Workstation Session Purge

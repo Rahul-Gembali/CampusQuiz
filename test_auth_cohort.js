@@ -241,6 +241,16 @@ document.getElementById('facultyPinInput').value = 'avanthi2026';
 CQ.verifyFacultyPin();
 assert(!mockLocalStorage.getItem('campusquiz_logged_faculty'), "5.3 In production mode, backdoor passkey 'avanthi2026' is strictly rejected");
 
+// Test 5.3b: In production mode, universal password Avanthi#Faculty2026 is strictly rejected (Flaw 1)
+document.getElementById('facultyIdInput').value = 'FACULTY_ADMIN';
+document.getElementById('facultyPinInput').value = 'Avanthi#Faculty2026';
+CQ.verifyFacultyPin();
+assert(!mockLocalStorage.getItem('campusquiz_logged_faculty'), "5.3b In production mode, universal password 'Avanthi#Faculty2026' is strictly rejected");
+
+// Test 5.3c: Error message does not leak credentials (Flaw 2)
+const errEl = document.getElementById('facultyPinError');
+assert(errEl && !errEl.textContent.includes('Avanthi#Faculty2026') && !errEl.textContent.includes('avanthi2026'), "5.3c Faculty error message contains no password hints or leaks");
+
 // Test 5.4: Demo Mode Passkey Acceptance (Flaw 1)
 CQ.setDemoMode(true);
 document.getElementById('facultyIdInput').value = '';
@@ -249,6 +259,28 @@ CQ.verifyFacultyPin();
 assert(mockLocalStorage.getItem('campusquiz_logged_faculty') !== null, "5.4 In Demo Mode, legacy passkey 'avanthi2026' unlocks portal for evaluation");
 CQ.lockFacultyMode();
 CQ.setDemoMode(false);
+
+// Test 5.5: Rate Limiting Cooldown on 5 Failed Attempts (Flaw 3)
+CQ.setDemoMode(false);
+mockLocalStorage.setItem('campusquiz_faculty_passkey', CQ.hashPassword('SuperSecret123', 'FACULTY_ADMIN'));
+for (let i = 0; i < 5; i++) {
+  document.getElementById('facultyPinInput').value = 'wrong_pin_' + i;
+  CQ.verifyFacultyPin();
+}
+const pinInp = document.getElementById('facultyPinInput');
+assert(pinInp.disabled === true, "5.5 Five consecutive failed PIN attempts locks the PIN input with 30s cooldown");
+
+// Test 5.6: Roll Number Immutability on Session Refresh (Flaw 12)
+mockLocalStorage.setItem('campusquiz_logged_student', JSON.stringify({ rollNo: '26A91A0500', name: 'Rahul Gembali' }));
+const refreshedStu = CQ.checkExistingSession();
+assert(refreshedStu && refreshedStu.rollNo === '26A91A0500', "5.6a Student session restored on refresh");
+let threwImmutability = false;
+try {
+  refreshedStu.rollNo = 'HACKED_ROLL';
+} catch (e) {
+  threwImmutability = true;
+}
+assert(CQ.checkExistingSession().rollNo === '26A91A0500', "5.6b Roll Number remains strictly immutable after session refresh");
 
 // =========================================================================
 // TEST SUITE 6: Academic Cohort Targeting Engine
