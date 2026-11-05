@@ -163,16 +163,189 @@
         color: #000000 !important;
       }
     }
+
+    /* ========================================================================= */
+    /* MOTION SYSTEM TOKENS & TRANSITIONS (transitions.dev, GSAP & Motion)      */
+    /* ========================================================================= */
+    :root {
+      /* Shared Duration Scale (transitions-dev & transitions-polish) */
+      --duration-stagger: 40ms;
+      --duration-micro: 80ms;
+      --duration-quick: 150ms;
+      --duration-fast: 250ms;
+      --duration-medium: 350ms;
+      --duration-slow: 400ms;
+      --duration-very-slow: 500ms;
+
+      /* Shared Easing Scale */
+      --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-in-out: ease-in-out;
+      --ease-out: ease-out;
+      --ease-linear: linear;
+      --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+      --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
+
+      /* Shared Distance Scale */
+      --distance-micro: 4px;
+      --distance-small: 6px;
+      --distance-base: 8px;
+      --distance-medium: 12px;
+      --distance-large: 30px;
+
+      /* Shared Scale Dimension */
+      --scale-large: 0.96;
+      --scale-medium: 0.97;
+      --scale-small: 0.98;
+      --scale-tiny: 0.99;
+
+      /* Shared Blur Dimension */
+      --blur-small: 2px;
+      --blur-medium: 3px;
+      --blur-large: 8px;
+    }
+
+    /* Mandatory Accessibility Guard: Non-Negotiable Motion Control */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Tactile Micro-Interactions (Squash & Stretch, Disney Principle #1) */
+    button:not(:disabled) {
+      transition: transform var(--duration-quick) var(--ease-smooth-out),
+                  background-color var(--duration-quick) var(--ease-smooth-out),
+                  border-color var(--duration-quick) var(--ease-smooth-out),
+                  color var(--duration-quick) var(--ease-smooth-out),
+                  box-shadow var(--duration-quick) var(--ease-smooth-out);
+      will-change: transform;
+    }
+    button:not(:disabled):active {
+      transform: scale(var(--scale-small));
+    }
+
+    /* High-Performance Composite-Only Modal Open/Close System */
+    div[id^="modal"]:not(.hidden) {
+      animation: modalBackdropEnter var(--duration-fast) var(--ease-smooth-out) forwards;
+    }
+    div[id^="modal"]:not(.hidden) > div {
+      animation: modalDialogEnter var(--duration-fast) var(--ease-smooth-out) forwards;
+      will-change: transform, opacity;
+    }
+
+    @keyframes modalBackdropEnter {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalDialogEnter {
+      from {
+        opacity: 0;
+        transform: scale(var(--scale-large)) translateY(var(--distance-base));
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    /* SPA View Switching Slide & Fade */
+    section[id^="view"]:not(.hidden) {
+      animation: viewSlideEnter var(--duration-fast) var(--ease-smooth-out) forwards;
+    }
+
+    @keyframes viewSlideEnter {
+      from {
+        opacity: 0;
+        transform: translateY(var(--distance-small));
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Faculty Tabs & Ingestion Sub-Panels */
+    div[id^="facultySubTab"]:not(.hidden),
+    div[id^="modalityPanel"]:not(.hidden) {
+      animation: subTabSlideEnter var(--duration-fast) var(--ease-smooth-out) forwards;
+    }
+
+    @keyframes subTabSlideEnter {
+      from {
+        opacity: 0;
+        transform: translateY(var(--distance-micro));
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Toast Notification (Transitions.dev Toast Recipe #22) */
+    #toastNotification:not(.hidden) {
+      animation: toastSlideEnter var(--duration-fast) var(--ease-smooth-out) forwards;
+    }
+
+    @keyframes toastSlideEnter {
+      from {
+        opacity: 0;
+        transform: translateY(-12px) scale(var(--scale-small));
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Question Options Hover Lift & Active Select */
+    #cardOptionsContainer button {
+      transition: transform var(--duration-quick) var(--ease-smooth-out),
+                  background-color var(--duration-quick) var(--ease-smooth-out),
+                  border-color var(--duration-quick) var(--ease-smooth-out),
+                  box-shadow var(--duration-quick) var(--ease-smooth-out);
+      will-change: transform;
+    }
+    #cardOptionsContainer button:hover {
+      transform: translateY(-1px);
+    }
+    #cardOptionsContainer button:active {
+      transform: scale(var(--scale-small));
+    }
+
+    /* Staggered Question Options Entrance (Smooth Animations Section 9.2) */
+    @keyframes optionCascadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(var(--distance-small));
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .option-stagger-enter {
+      animation: optionCascadeIn var(--duration-fast) var(--ease-smooth-out) both;
+    }
+
+    /* Composite GPU Scale Audio Wave Indicator (Zero Layout Reflow) */
     @keyframes wavePulse {
-      0%, 100% { height: 6px; }
-      50% { height: 28px; }
+      0%, 100% { transform: scaleY(0.2); }
+      50% { transform: scaleY(1); }
     }
     .wave-bar {
       width: 4px;
-      height: 6px;
+      height: 28px;
+      transform-origin: bottom;
       background-color: #991b1b;
       border-radius: 9999px;
       animation: wavePulse 1.2s ease-in-out infinite;
+      will-change: transform;
     }
     .wave-bar:nth-child(2) { animation-delay: 0.15s; background-color: #b91c1c; }
     .wave-bar:nth-child(3) { animation-delay: 0.30s; background-color: #dc2626; }
@@ -180,6 +353,23 @@
     .wave-bar:nth-child(5) { animation-delay: 0.60s; background-color: #16a34a; }
     .wave-bar:nth-child(6) { animation-delay: 0.75s; background-color: #2563eb; }
     .wave-bar:nth-child(7) { animation-delay: 0.90s; background-color: #991b1b; }
+
+    /* Progress Bar Transition (Hardware Accelerated) */
+    #hudProgressBar {
+      transition: width var(--duration-fast) var(--ease-smooth-out);
+      will-change: width;
+    }
+
+    /* Interactive Cards Hover Elevation */
+    .surface-interactive-card {
+      transition: transform var(--duration-fast) var(--ease-smooth-out),
+                  border-color var(--duration-fast) var(--ease-smooth-out),
+                  box-shadow var(--duration-fast) var(--ease-smooth-out);
+      will-change: transform;
+    }
+    .surface-interactive-card:hover {
+      transform: translateY(-2px);
+    }
   </style>
 </head>
 <body class="min-h-screen bg-[#fafafa] dark:bg-[#09090b] text-slate-800 dark:text-zinc-100 flex flex-col selection:bg-red-800 selection:text-white transition-colors duration-150">
@@ -7242,6 +7432,8 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         container.innerHTML = '';
 
         const selectedOptionId = state.studentAnswers[q.id];
+        const isNewQuestion = state.lastAnimatedQuestionId !== q.id;
+        state.lastAnimatedQuestionId = q.id;
 
         q.shuffledOptions.forEach((opt, optIdx) => {
           const isSelected = selectedOptionId === opt.id;
@@ -7252,7 +7444,10 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             isSelected 
               ? 'bg-rose-50/90 dark:bg-rose-950/25 border-red-600 dark:border-red-500 text-slate-900 dark:text-white ring-1 ring-red-600 dark:ring-red-500 shadow-sm' 
               : 'bg-white hover:bg-slate-50 dark:bg-surface-950 dark:hover:bg-surface-850 border-slate-200 dark:border-surface-800 text-slate-800 dark:text-zinc-200'
-          }`;
+          }${isNewQuestion ? ' option-stagger-enter' : ''}`;
+          if (isNewQuestion) {
+            optionBtn.style.animationDelay = `${optIdx * 40}ms`;
+          }
           optionBtn.onclick = () => selectOption(optIdx);
 
           optionBtn.innerHTML = `
