@@ -370,6 +370,50 @@
     .surface-interactive-card:hover {
       transform: translateY(-2px);
     }
+
+    /* Offline Structural CSS Fallbacks (if Tailwind CDN is blocked) */
+    .flex { display: flex; }
+    .hidden { display: none !important; }
+    .block { display: block; }
+    .grid { display: grid; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .justify-center { justify-content: center; }
+    .w-full { width: 100%; }
+    .max-w-md { max-width: 28rem; }
+    .max-w-xl { max-width: 36rem; }
+    .max-w-3xl { max-width: 48rem; }
+    .max-w-6xl { max-width: 72rem; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .p-4 { padding: 1rem; }
+    .p-6 { padding: 1.5rem; }
+    .rounded-xl { border-radius: 0.75rem; }
+    .rounded-lg { border-radius: 0.5rem; }
+    .border { border-width: 1px; border-style: solid; }
+
+    /* Offline Icon Glyphs Fallbacks (if Lucide CDN is blocked) */
+    i[data-lucide="check"]:empty::before { content: "✓"; }
+    i[data-lucide="x"]:empty::before { content: "✕"; }
+    i[data-lucide="settings"]:empty::before { content: "⚙"; }
+    i[data-lucide="arrow-left"]:empty::before { content: "←"; }
+    i[data-lucide="arrow-right"]:empty::before { content: "→"; }
+    i[data-lucide="chevron-left"]:empty::before { content: "‹"; }
+    i[data-lucide="chevron-right"]:empty::before { content: "›"; }
+    i[data-lucide="copy"]:empty::before { content: "📋"; }
+    i[data-lucide="download"]:empty::before { content: "⤓"; }
+    i[data-lucide="download-cloud"]:empty::before { content: "⤓"; }
+    i[data-lucide="upload"]:empty::before { content: "⤒"; }
+    i[data-lucide="upload-cloud"]:empty::before { content: "⤒"; }
+    i[data-lucide="shield-check"]:empty::before { content: "🛡✓"; }
+    i[data-lucide="shield-alert"]:empty::before { content: "🛡!"; }
+    i[data-lucide="alert-triangle"]:empty::before { content: "⚠"; }
+    i[data-lucide="key"]:empty::before { content: "🔑"; }
+    i[data-lucide="lock"]:empty::before { content: "🔒"; }
+    i[data-lucide="user"]:empty::before { content: "👤"; }
+    i[data-lucide="users"]:empty::before { content: "👥"; }
+    i[data-lucide="file-text"]:empty::before { content: "📄"; }
+    i[data-lucide="check-circle"]:empty::before { content: "✔"; }
+    i[data-lucide="trash-2"]:empty::before { content: "🗑"; }
   </style>
 </head>
 <body class="min-h-screen bg-[#fafafa] dark:bg-[#09090b] text-slate-800 dark:text-zinc-100 flex flex-col selection:bg-red-800 selection:text-white transition-colors duration-150">
@@ -631,7 +675,7 @@
           </div>
 
           <!-- Flaw 6 & 7: Offline Exam Package Loader (Classroom, WhatsApp, USB) -->
-          <div class="mb-4 p-4 rounded-xl bg-slate-50 dark:bg-surface-950 border border-dashed border-slate-300 dark:border-surface-800 text-xs">
+          <div ondragover="event.preventDefault();" ondrop="event.preventDefault(); CampusQuiz.handleStudentExamFileDrop(event);" class="mb-4 p-4 rounded-xl bg-slate-50 dark:bg-surface-950 border border-dashed border-slate-300 dark:border-surface-800 text-xs">
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 flex items-center justify-center shrink-0">
@@ -639,7 +683,7 @@
                 </div>
                 <div>
                   <div class="font-semibold text-slate-800 dark:text-zinc-200">Take an Offline Exam Package</div>
-                  <div class="text-[11px] text-slate-500 dark:text-zinc-500">Upload an exam package (.exam.json / .practice.json) distributed by your instructor</div>
+                  <div class="text-[11px] text-slate-500 dark:text-zinc-500">Upload or drag & drop an exam package (.exam.json / .practice.json) distributed by your instructor</div>
                 </div>
               </div>
               <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -652,6 +696,11 @@
             <div id="studentLoadedExamBadge" class="hidden mt-3 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between text-emerald-800 dark:text-emerald-300 font-mono text-xs gap-2 min-w-0 overflow-hidden">
               <span id="studentLoadedExamText" class="truncate min-w-0 flex-1"></span>
               <button type="button" onclick="CampusQuiz.clearStudentLoadedExam()" class="text-xs hover:underline cursor-pointer font-bold shrink-0 text-rose-600 dark:text-rose-400">Clear &times;</button>
+            </div>
+            <!-- Practice Package Warning Banner (Domain 2 Protection) -->
+            <div id="studentPracticeWarning" class="hidden mt-2.5 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 flex items-center gap-2 text-amber-800 dark:text-amber-300 font-mono text-xs">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0"></i>
+              <span id="studentPracticeWarningText" class="flex-1">Notice: Practice Package Loaded. This file contains explanations/answers and is intended for self-study only.</span>
             </div>
           </div>
 
@@ -1401,7 +1450,7 @@
               class="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-rose-800 hover:bg-rose-900 text-white font-mono text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-colors"
             >
               <i data-lucide="trash-2" class="w-4 h-4"></i>
-              <span>Purge Workstation for Next Candidate</span>
+              <span>End Session & Reset Workstation for Next Student</span>
             </button>
             <button 
               type="button" 
@@ -1423,7 +1472,7 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-[#121215] border border-slate-200 dark:border-surface-800 rounded-xl p-5 sm:p-7 shadow-sm dark:shadow-lg space-y-4 surface-card">
+        <div id="resBreakdownSection" class="bg-white dark:bg-[#121215] border border-slate-200 dark:border-surface-800 rounded-xl p-5 sm:p-7 shadow-sm dark:shadow-lg space-y-4 surface-card">
           <div class="border-b border-slate-200 dark:border-surface-800 pb-3 flex items-center justify-between">
             <h2 class="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-zinc-200">Question Item Breakdown & Academic Explanations</h2>
             <span class="text-xs text-slate-500 dark:text-zinc-400 font-mono">Air-Gap Verified</span>
@@ -3706,21 +3755,31 @@
         <div id="profileMessage" class="hidden p-2.5 rounded-lg text-xs font-mono"></div>
 
         <!-- Action Buttons -->
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-surface-800">
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-surface-800 flex-wrap">
           <button 
             type="button" 
-            onclick="CampusQuiz.closeStudentProfile()" 
-            class="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-surface-800 dark:hover:bg-surface-700 text-slate-700 dark:text-zinc-300 text-xs font-medium cursor-pointer"
+            onclick="CampusQuiz.closeStudentProfile(); CampusQuiz.purgeWorkstationSession();" 
+            class="px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/40 text-red-700 dark:text-red-400 border border-rose-200 dark:border-rose-900/50 text-xs font-mono font-medium flex items-center gap-1.5 cursor-pointer"
           >
-            Cancel
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>End Session & Reset Workstation</span>
           </button>
-          <button 
-            type="submit" 
-            class="px-4 py-2 rounded-lg bg-red-800 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
-          >
-            <i data-lucide="save" class="w-3.5 h-3.5"></i>
-            <span>Save Profile</span>
-          </button>
+          <div class="flex items-center gap-2 ml-auto">
+            <button 
+              type="button" 
+              onclick="CampusQuiz.closeStudentProfile()" 
+              class="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-surface-800 dark:hover:bg-surface-700 text-slate-700 dark:text-zinc-300 text-xs font-medium cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              class="px-4 py-2 rounded-lg bg-red-800 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer shadow-sm flex items-center gap-1.5"
+            >
+              <i data-lucide="save" class="w-3.5 h-3.5"></i>
+              <span>Save Profile</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -3791,9 +3850,6 @@
           <div id="facultyPinError" class="text-[11px] text-red-600 dark:text-red-400 mt-1 hidden font-mono">
             Invalid credentials. Access denied.
           </div>
-          <div class="text-[11px] text-slate-500 dark:text-zinc-500 mt-1 font-mono">
-            Default Passkey: <code class="text-slate-800 dark:text-zinc-300 bg-slate-100 dark:bg-surface-800 px-1 py-0.5 rounded">avanthi2026</code>
-          </div>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-surface-800">
@@ -3863,6 +3919,11 @@
       </div>
     </div>
   </footer>
+
+  <!-- Persistent Watermark when Demo Mode is Active (Domain 1 Hardening) -->
+  <div id="demoModeWatermark" class="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-4 py-1.5 rounded-full bg-amber-500/95 text-amber-950 font-bold text-xs font-mono uppercase tracking-widest shadow-xl border border-amber-600 backdrop-blur-md hidden text-center select-none">
+    DEMO / TEST MODE — NOT FOR OFFICIAL EVALUATION
+  </div>
 
   <!-- ========================================================================= -->
   <!-- JAVASCRIPT MASTER CLIENT ENGINE (PHASE 1 + PHASE 2 + PHASE 3)             -->
@@ -4682,9 +4743,15 @@ int main() {
       };
 
       function switchView(viewName) {
-        if (state.currentView === 'exam-canvas' && viewName !== 'exam-result' && !state.isSubmitted && state.timerInterval) {
-          const confirmLeave = confirm("Warning: An examination is currently in progress. Navigating away will not pause your assessment timer. Continue?");
-          if (!confirmLeave) return;
+        if (state.currentView === 'exam-canvas' && !state.isSubmitted && state.timerInterval) {
+          if (viewName === 'faculty-hub') {
+            alert("Administrative access is locked during an active student examination.");
+            return;
+          }
+          if (viewName !== 'exam-result') {
+            const confirmLeave = confirm("Warning: An examination is currently in progress. Navigating away will not pause your assessment timer. Continue?");
+            if (!confirmLeave) return;
+          }
         }
 
         state.currentView = viewName;
@@ -4813,8 +4880,8 @@ int main() {
           let totalChars = 0;
 
           for (let i = 1; i <= numPages; i++) {
-            // Non-blocking UI yield for legacy dual-core CPUs
-            await new Promise(r => setTimeout(r, 10));
+            // Non-blocking UI yield for legacy dual-core CPUs (20ms yield)
+            await new Promise(r => setTimeout(r, 20));
 
             const pct = Math.round((i / numPages) * 100);
             progressText.textContent = `Extracting Page ${i} of ${numPages}...`;
@@ -5886,6 +5953,10 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
       }
 
       function promptFacultyMode() {
+        if (state.currentView === 'exam-canvas' && !state.isSubmitted && state.timerInterval) {
+          alert("Administrative access is locked during an active student examination.");
+          return;
+        }
         if (state.isFacultyUnlocked) {
           switchView('faculty-hub');
           renderFacultyDashboard();
@@ -5909,6 +5980,10 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
       }
 
       function verifyFacultyPin() {
+        if (state.currentView === 'exam-canvas' && !state.isSubmitted && state.timerInterval) {
+          alert("Administrative access is locked during an active student examination.");
+          return;
+        }
         const idInput = document.getElementById('facultyIdInput');
         const pinInput = document.getElementById('facultyPinInput');
         const errorMsg = document.getElementById('facultyPinError');
@@ -6222,11 +6297,13 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         const fDemo = document.getElementById('facultyDemoBanner');
         const badge = document.getElementById('demoModeBadge');
         const toggle = document.getElementById('toggleDemoMode');
+        const watermark = document.getElementById('demoModeWatermark');
 
         if (sDemo) sDemo.classList.toggle('hidden', !demoActive);
         if (fDemo) fDemo.classList.toggle('hidden', !demoActive);
         if (badge) badge.classList.toggle('hidden', !demoActive);
         if (toggle) toggle.checked = demoActive;
+        if (watermark) watermark.classList.toggle('hidden', !demoActive);
       }
 
       function initUserRegistry() {
@@ -6821,8 +6898,13 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
       // =========================================================================
       // FLAW 13: SHARED LAB PC SESSION PURGE
       // =========================================================================
-      function purgeWorkstationSession() {
-        if (confirm("Sanitize this workstation for the next candidate?\n\nAll student credentials, temporary answers, and session records will be purged from this computer.")) {
+      let postSubmissionTimeout = null;
+      function purgeWorkstationSession(silent = false) {
+        if (postSubmissionTimeout) {
+          clearTimeout(postSubmissionTimeout);
+          postSubmissionTimeout = null;
+        }
+        if (silent || confirm("Sanitize this workstation for the next candidate?\n\nAll student credentials, temporary answers, and session records will be purged from this computer.")) {
           state.loggedStudent = null;
           state.paper = null;
           state.studentAnswers = {};
@@ -7059,6 +7141,12 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
       // =========================================================================
       // FLAWS 6 & 7: STUDENT OFFLINE EXAM PACKAGE LOADER (.exam.json / .practice.json)
       // =========================================================================
+      function handleStudentExamFileDrop(event) {
+        if (event && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
+          handleStudentExamFile({ files: event.dataTransfer.files });
+        }
+      }
+
       function handleStudentExamFile(input) {
         const file = input && input.files ? input.files[0] : null;
         if (!file) return;
@@ -7069,6 +7157,23 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             const data = JSON.parse(e.target.result);
             if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
               throw new Error("Invalid exam package: questions array is missing or empty.");
+            }
+
+            // Cryptographic Checksum Verification (Domain 2.2)
+            if (data.packageChecksum) {
+              const expectedChecksum = sha256Sync(`${data.quizId}:${data.durationMinutes}:${data.maxTabSwitches || 3}:${JSON.stringify(data.questions)}`);
+              if (data.packageChecksum !== expectedChecksum) {
+                alert("Corrupted or Tampered Exam Package — Contact Invigilator");
+                if (input) input.value = '';
+                return;
+              }
+            }
+
+            // Practice Exam Warning Banner (Domain 2.3)
+            const isPractice = data.packageType === 'PRACTICE' || (file && file.name.includes('.practice.json')) || data.questions.some(q => Array.isArray(q.options) && q.options.some(o => o.isCorrect === true));
+            const practiceWarning = document.getElementById('studentPracticeWarning');
+            if (practiceWarning) {
+              practiceWarning.classList.toggle('hidden', !isPractice);
             }
 
             const normalizedQuestions = data.questions.map((item, idx) => {
@@ -7147,6 +7252,8 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         loadActiveExam();
         const badgeEl = document.getElementById('studentLoadedExamBadge');
         if (badgeEl) badgeEl.classList.add('hidden');
+        const practiceWarning = document.getElementById('studentPracticeWarning');
+        if (practiceWarning) practiceWarning.classList.add('hidden');
         updateCohortEligibilityUI();
         if (typeof showToast === 'function') {
           showToast("Exam Cleared", "Restored standard institutional assessment.");
@@ -7264,8 +7371,12 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           const nowWall = Date.now();
           const nowPerf = performance.now();
 
-          // Flaw 12: Detect OS Clock Rollbacks
-          if (state.lastWallTime && (nowWall < state.lastWallTime - 2000)) {
+          // Flaw 12 & Domain 3.4: Detect OS Clock Rollbacks via monotonic deltas
+          const wallDelta = state.lastWallTime ? (nowWall - state.lastWallTime) : 1000;
+          const perfDelta = state.lastPerfTime ? (nowPerf - state.lastPerfTime) : 1000;
+          const isRollback = state.lastWallTime && (nowWall < state.lastWallTime - 2000 || (perfDelta > 500 && wallDelta < -1000));
+
+          if (isRollback) {
             state.tabSwitchCount++;
             state.violationLog.push({
               timestamp: new Date().toISOString(),
@@ -7350,14 +7461,14 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
       }
 
       function attachIntegrityEngine() {
-        document.addEventListener('visibilitychange', onVisibilityChange);
-        document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('visibilitychange', onVisibilityChange, { capture: true, passive: true });
+        document.addEventListener('fullscreenchange', onFullscreenChange, { capture: true, passive: true });
       }
 
       function cleanupIntegrityEngine() {
         if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
-          document.removeEventListener('visibilitychange', onVisibilityChange);
-          document.removeEventListener('fullscreenchange', onFullscreenChange);
+          document.removeEventListener('visibilitychange', onVisibilityChange, { capture: true });
+          document.removeEventListener('fullscreenchange', onFullscreenChange, { capture: true });
         }
         if (state.timerInterval) {
           clearInterval(state.timerInterval);
@@ -7638,8 +7749,31 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         document.getElementById('modalSubmitConfirmation').classList.add('hidden');
       }
 
-      async function computeSignature(roll, score, submittedAt, quizId) {
-        const rawPayload = `${roll}_${score}_${submittedAt}_${quizId}_avanthi_exam_2026`;
+      async function computeSignature(roll, arg2, arg3, arg4) {
+        let quizId = '';
+        let selectedOptions = {};
+        let submittedAt = '';
+
+        if (typeof arg3 === 'object' && arg3 !== null) {
+          // Signature: (roll, quizId, selectedOptions, submittedAt)
+          quizId = arg2;
+          selectedOptions = arg3;
+          submittedAt = arg4 || new Date().toISOString();
+        } else if (typeof arg2 === 'string' && (arg2.startsWith('exam_') || arg2.startsWith('key_') || arg2.startsWith('loaded_') || arg2.includes('-') || arg2.length > 5)) {
+          quizId = arg2;
+          selectedOptions = arg3 || {};
+          submittedAt = arg4 || new Date().toISOString();
+        } else {
+          // Legacy call pattern: (roll, score, submittedAt, quizId)
+          quizId = arg4 || (PILOT_EXAM ? PILOT_EXAM.id : 'exam');
+          selectedOptions = arg2; // score or answers
+          submittedAt = arg3 || new Date().toISOString();
+        }
+
+        const rawPayload = `${roll}:${quizId}:${typeof selectedOptions === 'string' ? selectedOptions : JSON.stringify(selectedOptions)}:${submittedAt}`;
+        if (typeof sha256Sync === 'function') {
+          return sha256Sync(rawPayload);
+        }
         try {
           if (window.crypto && crypto.subtle) {
             const encoder = new TextEncoder();
@@ -7685,6 +7819,10 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         const unansweredCount = totalQuestions - answeredCount;
         const breakdownItems = [];
 
+        // Flaw 11 & Domain 3: Check if paper has answers or is sealed secure exam
+        const hasAnswersInPaper = state.paper.questions.some(q => q.options.some(o => o.isCorrect === true));
+        const isSealedExam = !hasAnswersInPaper;
+
         state.paper.questions.forEach((q, idx) => {
           const studentOptId = state.studentAnswers[q.id] || null;
           const correctOpt = q.options.find(o => o.isCorrect);
@@ -7702,33 +7840,33 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           }
 
           breakdownItems.push({
+            id: q.id,
+            questionId: q.id,
             displayNumber: idx + 1,
             topic: q.topic,
             stem: q.stem,
+            chosenOptionId: studentOptId,
             chosenText: chosenOpt ? chosenOpt.text : 'Unattempted',
             correctText: correctOpt ? correctOpt.text : '',
-            isCorrect: Boolean(isCorrect),
-            explanation: q.explanation
+            isCorrect: isSealedExam ? null : Boolean(isCorrect),
+            explanation: isSealedExam ? '' : q.explanation
           });
         });
-
-        // Flaw 11: Check if paper has answers or is sealed secure exam
-        const hasAnswersInPaper = state.paper.questions.some(q => q.options.some(o => o.isCorrect === true));
-        const isSealedExam = !hasAnswersInPaper;
 
         const percentage = Number(((score / totalQuestions) * 100).toFixed(2));
         const forcedSubmission = Boolean(options.forcedSubmission);
         const forcedReason = options.reason || null;
 
-        // Flaw 10: Salted signature
-        const examSalt = (state.paper && state.paper.examSalt) || PILOT_EXAM.examSalt || 'avanthi_salt';
-        const checksum = await computeSignature(state.student.rollNo, score, submittedAtISO, PILOT_EXAM.id, examSalt);
+        // Anti-Forgery Signature (Domain 3.1)
+        const checksum = await computeSignature(state.student.rollNo, PILOT_EXAM.id, state.studentAnswers, submittedAtISO);
 
         const resultPayload = {
           schemaVersion: "1.0",
           institution: "Avanthi Institute of Engineering & Technology",
           quizId: PILOT_EXAM.id,
           quizTitle: PILOT_EXAM.title,
+          isSealedExam: isSealedExam,
+          selectedOptions: { ...state.studentAnswers },
           student: {
             rollNumber: state.student.rollNo,
             name: state.student.name,
@@ -7736,13 +7874,13 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             section: state.student.section
           },
           performance: {
-            score: score,
+            score: isSealedExam ? 0 : score,
             maxMarks: totalQuestions,
-            percentage: percentage,
+            percentage: isSealedExam ? 0 : percentage,
             answeredCount: answeredCount,
             unansweredCount: unansweredCount,
-            correctCount: correctAnswersCount,
-            incorrectCount: incorrectAnswersCount
+            correctCount: isSealedExam ? 0 : correctAnswersCount,
+            incorrectCount: isSealedExam ? 0 : incorrectAnswersCount
           },
           timing: {
             startedAt: startedAtISO,
@@ -7769,12 +7907,13 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           rollNo: state.student.rollNo,
           name: state.student.name,
           branch: `${state.student.branch} (${state.student.section})`,
-          score: `${score} / ${totalQuestions}`,
-          percentage: `${percentage.toFixed(2)}%`,
+          score: isSealedExam ? `${answeredCount} / ${totalQuestions} (Sealed)` : `${score} / ${totalQuestions}`,
+          percentage: isSealedExam ? 'Sealed' : `${percentage.toFixed(2)}%`,
           timeSpent: timeSpentStr,
           tabSwitches: state.tabSwitchCount,
           forcedSubmission: forcedSubmission,
           seedHash: state.paper ? state.paper.seed : 'N/A',
+          isSealed: isSealedExam,
           resultPayload: resultPayload
         });
 
@@ -7788,9 +7927,11 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         if (!payload) return;
         state.lastResultPayload = payload;
 
+        const isSealedExam = Boolean(payload.isSealedExam);
         const score = payload.performance ? payload.performance.score : (payload.score || 0);
         const totalQuestions = payload.performance ? payload.performance.maxMarks : (payload.totalQuestions || 5);
         const percentage = payload.performance ? payload.performance.percentage : parseFloat(payload.percentage || 0);
+        const answeredCount = payload.performance ? (payload.performance.answeredCount !== undefined ? payload.performance.answeredCount : Object.keys(payload.selectedOptions || {}).length) : 0;
         const rollNo = payload.student ? (payload.student.rollNumber || payload.student.rollNo) : (payload.rollNo || '');
         const name = payload.student ? (payload.student.fullName || payload.student.name) : (payload.name || '');
         const branchSec = payload.student ? `${payload.student.branch || ''} \u2022 ${payload.student.section || ''}` : (payload.branch || '');
@@ -7810,8 +7951,21 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         const elTime = document.getElementById('resTimeTaken');
         const elCheck = document.getElementById('resChecksum');
 
-        if (elScore) elScore.textContent = `${score} / ${totalQuestions}`;
-        if (elPct) elPct.textContent = `${Number(percentage).toFixed(2)}% Aggregate Marks`;
+        if (isSealedExam) {
+          // Domain 4.1: Sealed Assessment Submission Slip (No 0% FAIL panic!)
+          if (elScore) elScore.textContent = `${answeredCount} / ${totalQuestions} Submitted`;
+          if (elPct) {
+            elPct.textContent = "Responses Cryptographically Sealed • Pending Faculty Key Evaluation";
+            elPct.className = "text-xs font-mono text-emerald-700 dark:text-emerald-400 mt-1 font-semibold";
+          }
+        } else {
+          if (elScore) elScore.textContent = `${score} / ${totalQuestions}`;
+          if (elPct) {
+            elPct.textContent = `${Number(percentage).toFixed(2)}% Aggregate Marks`;
+            elPct.className = "text-xs font-mono text-emerald-700 dark:text-emerald-400 mt-1 font-semibold";
+          }
+        }
+
         if (elRoll) elRoll.textContent = rollNo;
         if (elName) elName.textContent = name;
         if (elBranch) elBranch.textContent = branchSec;
@@ -7820,7 +7974,10 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
 
         const badgeEl = document.getElementById('resIntegrityBadge');
         if (badgeEl) {
-          if (forcedSubmission) {
+          if (isSealedExam) {
+            badgeEl.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30";
+            badgeEl.innerHTML = `<i data-lucide="shield-check" class="w-3.5 h-3.5"></i><span>Assessment Submitted &amp; Cryptographically Sealed</span>`;
+          } else if (forcedSubmission) {
             badgeEl.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-red-500/10 text-red-400 border border-red-500/30";
             badgeEl.innerHTML = `<i data-lucide="alert-octagon" class="w-3.5 h-3.5"></i><span>Submission Forced: ${forcedReason === 'EXCEEDED_TAB_SWITCH_LIMIT' ? 'Exceeded Tab-Switch Limit (3 violations)' : 'Time Elapsed'}</span>`;
           } else if (tabSwitches === 0) {
@@ -7831,6 +7988,18 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             badgeEl.innerHTML = `<i data-lucide="shield-alert" class="w-3.5 h-3.5"></i><span>Integrity Flagged: ${tabSwitches} Tab Switch${tabSwitches > 1 ? 'es' : ''} Recorded</span>`;
           }
         }
+
+        // Domain 4.1: Question breakdown hidden for sealed exams, visible for practice exams
+        const breakdownSection = document.getElementById('resBreakdownSection');
+        if (breakdownSection) {
+          breakdownSection.classList.toggle('hidden', isSealedExam);
+        }
+
+        // Domain 5.2: 3-minute post-submission auto-logout timer on shared lab PCs
+        if (postSubmissionTimeout) clearTimeout(postSubmissionTimeout);
+        postSubmissionTimeout = setTimeout(() => {
+          purgeWorkstationSession(true);
+        }, 3 * 60 * 1000);
 
         const violationSec = document.getElementById('resViolationSection');
         const violationList = document.getElementById('resViolationList');
@@ -8182,6 +8351,13 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
 
       function setupKeyboardNavigation() {
         window.addEventListener('keydown', (e) => {
+          // Unadvertised Developer Shortcut (Ctrl + Shift + Alt + D) to toggle Demo Mode securely
+          if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === 'D' || e.key === 'd')) {
+            e.preventDefault();
+            setDemoMode(!isDemoMode());
+            return;
+          }
+
           if (state.currentView !== 'exam-canvas' || state.isSubmitted) return;
           const isSubmitModalOpen = !document.getElementById('modalSubmitConfirmation').classList.contains('hidden');
           const isWarningModalOpen = !document.getElementById('modalIntegrityWarning').classList.contains('hidden');
@@ -8261,9 +8437,50 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         } catch (e) {}
       }
 
+      let facultyInactivityTimeout = null;
+      function resetFacultyInactivityTimer() {
+        if (facultyInactivityTimeout) clearTimeout(facultyInactivityTimeout);
+        facultyInactivityTimeout = setTimeout(() => {
+          try {
+            sessionStorage.removeItem(STORAGE_FACULTY_CONFIG);
+            if (localStorage.getItem('campusquiz_public_lab_mode') === 'true') {
+              if (state.aiConfig) {
+                state.aiConfig.extractor.key = '';
+                state.aiConfig.generator.key = '';
+                state.aiConfig.transcriber.key = '';
+              }
+              const extKey = document.getElementById('cfgExtractorKey');
+              const genKey = document.getElementById('cfgGeneratorKey');
+              const transKey = document.getElementById('cfgTranscriberKey');
+              if (extKey) extKey.value = '';
+              if (genKey) genKey.value = '';
+              if (transKey) transKey.value = '';
+            }
+          } catch (e) {}
+        }, 15 * 60 * 1000); // 15-minute inactivity purge
+      }
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        ['mousemove', 'keydown', 'touchstart', 'scroll'].forEach(evt => {
+          window.addEventListener(evt, resetFacultyInactivityTimer, { passive: true });
+        });
+        resetFacultyInactivityTimer();
+      }
+
       function loadFacultyApiConfig() {
         try {
-          const isPublic = localStorage.getItem('campusquiz_public_lab_mode') === 'true';
+          const storedPublic = localStorage.getItem('campusquiz_public_lab_mode');
+          let isPublic = false;
+          if (storedPublic !== null) {
+            isPublic = storedPublic === 'true';
+          } else {
+            // Default to true on non-localhost origins (Domain 1.3)
+            try {
+              const isLocal = typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:');
+              isPublic = !isLocal;
+            } catch (e) {
+              isPublic = false;
+            }
+          }
           const pubCheck = document.getElementById('cfgPublicComputerMode');
           if (pubCheck) pubCheck.checked = isPublic;
           const raw = isPublic
@@ -10198,9 +10415,14 @@ Output Format Schema (STRICT JSON ONLY):
       function exportSecureExamPackage() {
         closeExportModal();
 
-        const quizId = PILOT_EXAM.id || `exam_${Date.now().toString(36)}`;
+        if (!PILOT_EXAM.id) {
+          PILOT_EXAM.id = `exam_${Date.now().toString(36)}`;
+        }
+        const quizId = PILOT_EXAM.id;
         const title = document.getElementById('aiQuizTitle')?.value.trim() || PILOT_EXAM.title || "Institutional Examination";
         const subject = document.getElementById('aiSubjectCode')?.value.trim() || PILOT_EXAM.subjectCode || "CS301PC";
+        const durationMinutes = parseInt(document.getElementById('aiDurationInput')?.value, 10) || PILOT_EXAM.durationMinutes || 30;
+        const maxTabSwitches = PILOT_EXAM.maxTabSwitches || 3;
         const secret = generateQuizSecret();
 
         // Flaw 9: Embed configured submission webhook directly into package metadata
@@ -10224,6 +10446,8 @@ Output Format Schema (STRICT JSON ONLY):
           topic: q.topic || "Computer Science"
         }));
 
+        const packageChecksum = sha256Sync(`${quizId}:${durationMinutes}:${maxTabSwitches}:${JSON.stringify(strippedQuestions)}`);
+
         const payload = {
           packageVersion: "2.0",
           packageType: "EXAM_SECURE",
@@ -10231,12 +10455,15 @@ Output Format Schema (STRICT JSON ONLY):
           quizId,
           title,
           subject,
-          durationMinutes: parseInt(document.getElementById('aiDurationInput')?.value, 10) || PILOT_EXAM.durationMinutes || 30,
+          durationMinutes,
+          maxTabSwitches,
+          packageChecksum,
           window: PILOT_EXAM.window || { mode: "unrestricted" },
           marking: PILOT_EXAM.marking || { positive: 1.0, negative: 0.0, passPercentage: 40.0 },
           examSalt: secret.substring(0, 16),      // Flaw 10: Checksum signature salt
           seedSalt: secret.substring(16, 24),     // Flaw 12: PRNG shuffling secret
-          submissionWebhook: webhookMeta,         // Flaw 9: Auto-embedded cloud submission webhook
+          webhookUrl: webhookMeta?.url || null,   // Embedded webhook url
+          submissionWebhook: webhookMeta,         // Embedded submission webhook
           exportedAt: new Date().toISOString(),
           questions: strippedQuestions
         };
@@ -10249,7 +10476,10 @@ Output Format Schema (STRICT JSON ONLY):
       function exportFacultyMasterKey() {
         closeExportModal();
 
-        const quizId = PILOT_EXAM.id || `key_${Date.now().toString(36)}`;
+        if (!PILOT_EXAM.id) {
+          PILOT_EXAM.id = `exam_${Date.now().toString(36)}`;
+        }
+        const quizId = PILOT_EXAM.id;
         const title = document.getElementById('aiQuizTitle')?.value.trim() || PILOT_EXAM.title || "Examination Key";
         const subject = document.getElementById('aiSubjectCode')?.value.trim() || PILOT_EXAM.subjectCode || "CS301PC";
         const secret = generateQuizSecret();
@@ -10626,15 +10856,15 @@ Output Format Schema (STRICT JSON ONLY):
       }
 
       async function verifyResultChecksum(payload) {
-        if (!payload.checksum || !payload.student || !payload.performance || !payload.timing) {
+        if (!payload.checksum || !payload.student || !payload.timing) {
           return false;
         }
         try {
           const expected = await computeSignature(
-            payload.student.rollNumber,
-            payload.performance.score,
-            payload.timing.submittedAt,
-            payload.quizId
+            payload.student.rollNumber || payload.student.rollNo,
+            payload.quizId,
+            payload.selectedOptions || (payload.performance ? payload.performance.score : 0),
+            payload.timing.submittedAt
           );
           return expected === payload.checksum;
         } catch (e) {
@@ -10726,49 +10956,71 @@ Output Format Schema (STRICT JSON ONLY):
             const negMark = (keyData.marking?.negative !== undefined ? keyData.marking.negative : 0.0);
 
             allRecords.forEach(rec => {
-              if (rec.resultPayload && rec.resultPayload.breakdown) {
+              // Domain 4.2: Match quizId strictly to avoid cross-quiz grading
+              if (keyData.quizId && rec.fullPayload?.quizId && rec.fullPayload.quizId !== keyData.quizId) return;
+              if (keyData.quizId && rec.quizId && rec.quizId !== keyData.quizId) return;
+
+              const payload = rec.fullPayload || rec.resultPayload;
+              if (payload && (payload.breakdown || payload.selectedOptions)) {
                 let score = 0;
                 let correctCount = 0;
                 let incorrectCount = 0;
-                const totalQ = rec.resultPayload.breakdown.length;
+                const totalQ = payload.breakdown ? payload.breakdown.length : Object.keys(keyData.keys).length;
 
-                rec.resultPayload.breakdown.forEach(item => {
-                  const masterQ = keyData.keys[item.id] ||
-                                  keyData.keys[item.questionId] ||
-                                  Object.values(keyData.keys).find(k => k.correctText === item.correctText);
-                  if (masterQ) {
-                    item.correctOptionId = masterQ.correctOptionId;
-                    item.correctText = masterQ.correctText;
-                    item.explanation = masterQ.explanation;
+                if (payload.breakdown) {
+                  payload.breakdown.forEach(item => {
+                    const masterQ = keyData.keys[item.id] ||
+                                    keyData.keys[item.questionId] ||
+                                    Object.values(keyData.keys).find(k => k.correctText === item.correctText);
+                    if (masterQ) {
+                      item.correctOptionId = masterQ.correctOptionId;
+                      item.correctText = masterQ.correctText;
+                      item.explanation = masterQ.explanation;
 
-                    const isMatch = item.chosenOptionId
-                      ? item.chosenOptionId === masterQ.correctOptionId
-                      : (item.chosenText && masterQ.correctText && item.chosenText.trim() === masterQ.correctText.trim());
+                      const isMatch = item.chosenOptionId
+                        ? item.chosenOptionId === masterQ.correctOptionId
+                        : (item.chosenText && masterQ.correctText && item.chosenText.trim() === masterQ.correctText.trim());
 
-                    if (isMatch) {
+                      if (isMatch) {
+                        score += posMark;
+                        correctCount++;
+                        item.isCorrect = true;
+                      } else if (item.chosenOptionId || (item.chosenText && item.chosenText !== 'Unattempted')) {
+                        score -= negMark;
+                        incorrectCount++;
+                        item.isCorrect = false;
+                      } else {
+                        item.isCorrect = false;
+                      }
+                    }
+                  });
+                } else if (payload.selectedOptions) {
+                  Object.keys(keyData.keys).forEach(qId => {
+                    const masterQ = keyData.keys[qId];
+                    const studentOptId = payload.selectedOptions[qId];
+                    if (studentOptId && studentOptId === masterQ.correctOptionId) {
                       score += posMark;
                       correctCount++;
-                      item.isCorrect = true;
-                    } else if (item.chosenOptionId || (item.chosenText && item.chosenText !== 'Unattempted')) {
+                    } else if (studentOptId) {
                       score -= negMark;
                       incorrectCount++;
-                      item.isCorrect = false;
-                    } else {
-                      item.isCorrect = false;
                     }
-                  }
-                });
+                  });
+                }
 
                 const pct = totalQ > 0 ? Number(((score / totalQ) * 100).toFixed(2)) : 0;
                 rec.score = `${score} / ${totalQ}`;
                 rec.percentage = `${pct}%`;
+                rec.percentageNum = pct;
                 rec.isVerified = true;
                 rec.isGraded = true;
-                rec.resultPayload.performance.score = score;
-                rec.resultPayload.performance.percentage = pct;
-                rec.resultPayload.performance.correctCount = correctCount;
-                rec.resultPayload.performance.incorrectCount = incorrectCount;
-                rec.resultPayload.performance.isSealed = false;
+                if (!payload.performance) payload.performance = {};
+                payload.performance.score = score;
+                payload.performance.percentage = pct;
+                payload.performance.correctCount = correctCount;
+                payload.performance.incorrectCount = incorrectCount;
+                payload.performance.isSealed = false;
+                payload.isSealedExam = false;
                 gradedCount++;
               }
             });
@@ -11391,10 +11643,18 @@ Output Format Schema (STRICT JSON ONLY):
       // Resilient Student Submission Logic (0 to 8s Jitter + Exponential Backoff)
       async function dispatchCloudWebhook(resultPayload) {
         let config = null;
-        try {
-          const raw = localStorage.getItem(STORAGE_WEBHOOK_KEY);
-          if (raw) config = JSON.parse(raw);
-        } catch (e) {}
+        if (state.loadedExam && state.loadedExam.submissionWebhook && state.loadedExam.submissionWebhook.url) {
+          config = state.loadedExam.submissionWebhook;
+        } else if (PILOT_EXAM && PILOT_EXAM.submissionWebhook && PILOT_EXAM.submissionWebhook.url) {
+          config = PILOT_EXAM.submissionWebhook;
+        } else if (PILOT_EXAM && PILOT_EXAM.webhookUrl) {
+          config = { url: PILOT_EXAM.webhookUrl, enabled: true };
+        } else {
+          try {
+            const raw = localStorage.getItem(STORAGE_WEBHOOK_KEY);
+            if (raw) config = JSON.parse(raw);
+          } catch (e) {}
+        }
 
         if (!config || !config.enabled || !config.url) return;
 
@@ -11533,6 +11793,7 @@ Output Format Schema (STRICT JSON ONLY):
         isDemoMode,
         setDemoMode,
         handleStudentExamFile,
+        handleStudentExamFileDrop,
         clearStudentLoadedExam,
         purgeWorkstationSession,
         copyCompactResultCode,
