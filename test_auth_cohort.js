@@ -86,6 +86,17 @@ global.document = {
   removeEventListener: () => {}
 };
 global.localStorage = mockLocalStorage;
+global.FileReader = function() {
+  this.readAsText = function(f) {
+    if (this.onload) this.onload({ target: { result: f._content } });
+  };
+  this.readAsDataURL = function(b) {
+    if (this.onloadend) {
+      this.result = 'data:audio/mp3;base64,AAAA';
+      this.onloadend();
+    }
+  };
+};
 global.alert = (msg) => { console.log(`   [ALERT CAPTURED]: ${msg.replace(/\n/g, ' ')}`); };
 global.confirm = () => true;
 
@@ -282,6 +293,25 @@ try {
 }
 assert(CQ.checkExistingSession().rollNo === '26A91A0500', "5.6b Roll Number remains strictly immutable after session refresh");
 
+// Test 5.7: Secure First-Time Faculty Setup on Lab PCs (Bug 3)
+CQ.resetFacultyGateCooldown();
+mockLocalStorage.removeItem('campusquiz_faculty_passkey');
+pinInp.disabled = false;
+document.getElementById('facultyIdInput').value = '';
+document.getElementById('facultyPinInput').value = '987654';
+
+global.prompt = () => 'wrong_secret';
+global.confirm = () => false;
+CQ.verifyFacultyPin();
+assert(!mockLocalStorage.getItem('campusquiz_faculty_passkey'), "5.7a Arbitrary 6-digit PIN rejected without institutional secret on fresh lab PC");
+assert(!mockLocalStorage.getItem('campusquiz_logged_faculty'), "5.7b Faculty session not granted without institutional authorization");
+
+global.prompt = () => 'Avanthi#Faculty2026';
+CQ.verifyFacultyPin();
+assert(mockLocalStorage.getItem('campusquiz_faculty_passkey') !== null, "5.7c Authorized faculty secret successfully establishes new Master PIN");
+assert(mockLocalStorage.getItem('campusquiz_logged_faculty') !== null, "5.7d Faculty session granted upon authorized setup");
+CQ.lockFacultyMode();
+
 // =========================================================================
 // TEST SUITE 6: Academic Cohort Targeting Engine
 // =========================================================================
@@ -384,6 +414,49 @@ CQ.startExam();
 global.alert = originalAlert;
 
 assert(alertCaptured === true, "7.4 Ineligible cohort student correctly blocked from starting exam with alert");
+
+// Test 7.5: Custom Exam State Persistence Across Refresh (Bug 1)
+const crypto = require('crypto');
+const customExamPkg = {
+  quizId: "custom_exam_401",
+  title: "Microprocessors Assessment",
+  durationMinutes: 20,
+  maxTabSwitches: 3,
+  examSalt: "salt_mp_2026",
+  questions: [
+    {
+      id: "q_mp_1",
+      stem: "Which register pair is used as memory pointer in 8085?",
+      options: [
+        { id: "opt_1", text: "H-L Pair" },
+        { id: "opt_2", text: "B-C Pair" },
+        { id: "opt_3", text: "D-E Pair" },
+        { id: "opt_4", text: "PSW" }
+      ]
+    }
+  ]
+};
+customExamPkg.packageChecksum = crypto.createHash('sha256').update(`${customExamPkg.quizId}:${customExamPkg.durationMinutes}:${customExamPkg.maxTabSwitches}:${JSON.stringify(customExamPkg.questions)}`).digest('hex');
+
+CQ.handleStudentExamFile({
+  files: [{ name: "mp.exam.json", _content: JSON.stringify(customExamPkg) }]
+});
+
+const storedActiveExam = JSON.parse(mockLocalStorage.getItem('campusquiz_active_exam'));
+assert(storedActiveExam && storedActiveExam.id === 'custom_exam_401', "7.5a Custom exam package saved to campusquiz_active_exam in localStorage");
+
+const generatedPaper = CQ.generateDeterministicPaper('26A91A0500', customExamPkg);
+mockLocalStorage.setItem('campusquiz_active_session', JSON.stringify({
+  student: { rollNo: '26A91A0500', name: 'Rahul Gembali', branch: 'CSE', section: 'Section A' },
+  deadlineTime: Date.now() + 600000,
+  paper: generatedPaper,
+  studentAnswers: { q_mp_1: 'opt_1' },
+  loadedExam: customExamPkg
+}));
+
+CQ.checkActiveSession();
+const sessionAfterRefresh = JSON.parse(mockLocalStorage.getItem('campusquiz_active_session'));
+assert(sessionAfterRefresh && sessionAfterRefresh.loadedExam && (sessionAfterRefresh.loadedExam.id === 'custom_exam_401' || sessionAfterRefresh.loadedExam.quizId === 'custom_exam_401'), "7.5b Active session persistence includes loadedExam payload");
 
 // =========================================================================
 // SUMMARY

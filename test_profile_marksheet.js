@@ -88,6 +88,17 @@ global.document = {
   removeEventListener: () => {}
 };
 global.localStorage = mockLocalStorage;
+global.FileReader = function() {
+  this.readAsText = function(f) {
+    if (this.onload) this.onload({ target: { result: f._content } });
+  };
+  this.readAsDataURL = function(b) {
+    if (this.onloadend) {
+      this.result = 'data:audio/mp3;base64,AAAA';
+      this.onloadend();
+    }
+  };
+};
 global.alert = (msg) => { console.log(`   [ALERT]: ${msg}`); };
 global.confirm = () => true;
 
@@ -377,6 +388,179 @@ console.log("\n--- 6. CRYPTOGRAPHIC CHECKSUMS, SEALED MARKSHEET & PERSISTENCE --
   // Test 6.5: User Registry profile tracking for double-submission (Flaw 10)
   const userReg = CampusQuiz.getUserRegistry();
   assert(userReg && userReg.students && userReg.students['26A91A0500'], "6.5 User registry contains student profiles for double-submission tracking");
+
+  // Test 6.6: Master Key Evaluation Unseals Records and Exports Calculated Scores (Bug 2)
+  mockLocalStorage.setItem('campusquiz_attempts', JSON.stringify([
+    {
+      rollNo: '26A91A0500',
+      name: 'Rahul Gembali',
+      quizId: 'exam_cs101',
+      score: '0 / 2 (Sealed)',
+      isSealed: true,
+      timestamp: '2026-11-05T10:00:00.000Z',
+      fullPayload: {
+        quizId: 'exam_cs101',
+        isSealedExam: true,
+        student: { rollNumber: '26A91A0500', name: 'Rahul Gembali' },
+        selectedOptions: { q1: 'opt_1', q2: 'opt_4' },
+        performance: { score: 0, isSealed: true }
+      }
+    }
+  ]));
+
+  const sampleMasterKey = {
+    packageType: "FACULTY_KEY",
+    quizId: 'exam_cs101',
+    salt: 'master_salt_cs101',
+    marking: { positive: 1.0, negative: 0.0 },
+    keys: {
+      q1: { correctOptionId: 'opt_1', correctText: 'Correct Option 1' },
+      q2: { correctOptionId: 'opt_2', correctText: 'Correct Option 2' }
+    }
+  };
+
+  CampusQuiz.handleMasterKeyFile({
+    files: [{ name: "cs101.key.json", _content: JSON.stringify(sampleMasterKey) }],
+    value: 'cs101.key.json'
+  });
+
+  const gradedAttempts = JSON.parse(mockLocalStorage.getItem('campusquiz_test_attempts') || mockLocalStorage.getItem('campusquiz_attempts'));
+  assert(gradedAttempts && gradedAttempts[0].isSealed === false, "6.6a Master Key grading explicitly sets rec.isSealed = false");
+  assert(gradedAttempts[0].fullPayload && gradedAttempts[0].fullPayload.isSealedExam === false, "6.6b Master Key grading explicitly sets fullPayload.isSealedExam = false");
+  assert(gradedAttempts[0].fullPayload.performance && gradedAttempts[0].fullPayload.performance.isSealed === false, "6.6c Master Key grading sets performance.isSealed = false");
+
+  CampusQuiz.exportOfficialMarksheetCsv();
+  assert(!exportedCsvContent.includes('"Sealed (Pending)"'), "6.6d Marksheet CSV no longer exports 'Sealed (Pending)' after master key grading");
+  assert(exportedCsvContent.includes('"50.00%"') || exportedCsvContent.includes('50%'), "6.6e Marksheet CSV exports calculated percentage after master key grading");
+
+  // Test 6.7: Checksum value in CSV export uses authentic 64-char SHA-256 signature (Bug 9)
+  CampusQuiz.clearAllResults();
+  const fullChecksum = 'a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90';
+  mockLocalStorage.setItem('campusquiz_attempts', JSON.stringify([
+    {
+      rollNo: '26A91A0500',
+      name: 'Rahul Gembali',
+      quizId: 'exam_cs101',
+      score: '1 / 2',
+      isSealed: false,
+      timestamp: '2026-11-05T10:00:00.000Z',
+      seedHash: 'SHORT_SEED',
+      fullPayload: {
+        checksum: fullChecksum,
+        quizId: 'exam_cs101',
+        student: { rollNumber: '26A91A0500', name: 'Rahul Gembali' }
+      }
+    }
+  ]));
+  CampusQuiz.exportOfficialMarksheetCsv();
+  assert(exportedCsvContent.includes(fullChecksum), "6.7 Marksheet CSV exports authentic 64-character SHA-256 signature instead of short seed");
+
+  // Test 6.8: Sealed Records in Gradebook UI Table & Analytics (Bug 4)
+  CampusQuiz.clearAllResults();
+  mockLocalStorage.setItem('campusquiz_attempts', JSON.stringify([
+    {
+      rollNo: '26A91A0501',
+      name: 'P. Sai Kumar',
+      quizId: 'exam_sealed_01',
+      score: '10 / 20 (Sealed)',
+      isSealed: true,
+      tabSwitches: 1,
+      fullPayload: { isSealedExam: true }
+    },
+    {
+      rollNo: '26A91A0502',
+      name: 'D. Divya',
+      quizId: 'exam_sealed_01',
+      score: '18 / 20',
+      percentage: '90%',
+      percentageNum: 90,
+      isSealed: false,
+      tabSwitches: 0,
+      fullPayload: { isSealedExam: false }
+    }
+  ]));
+
+  CampusQuiz.renderResultsHub();
+  const tbodyHtml = document.getElementById('gradebookTableBody').innerHTML;
+  assert(tbodyHtml.includes('Sealed (Pending)'), "6.8a Gradebook table renders 'Sealed (Pending)' for sealed candidate score");
+  assert(tbodyHtml.includes('SEALED'), "6.8b Gradebook table renders 'SEALED' status badge for sealed record");
+
+  const statFlagsText = document.getElementById('statIntegrityViolations').textContent;
+  assert(statFlagsText.includes('1 Sealed'), "6.9a Analytics counters track and display '1 Sealed' count");
+  const statAvgText = document.getElementById('statClassAverage').textContent;
+  assert(statAvgText.includes('18.00') && statAvgText.includes('90.0%'), "6.9b Class average excludes sealed records from calculations");
+
+  // Test 6.10: Answer Sheet Inspector for Sealed Records (Bug 5)
+  CampusQuiz.openStudentInspection(0);
+  assert(document.getElementById('modalStudentInspection').classList.contains('hidden') === false, "6.10a Student inspection modal opens");
+
+  // Test 6.11: Answer Sheet Inspector maps violation log using v.type (Bug 6)
+  CampusQuiz.clearAllResults();
+  mockLocalStorage.setItem('campusquiz_attempts', JSON.stringify([
+    {
+      rollNo: '26A91A0599',
+      name: 'V. Naresh',
+      isSealed: false,
+      score: '15 / 20',
+      fullPayload: {
+        integrity: {
+          violationLog: [
+            { type: 'FULLSCREEN_EXITED', count: 1, timestamp: Date.now() },
+            { type: 'TAB_SWITCH', count: 2, timestamp: Date.now() }
+          ]
+        },
+        breakdown: [
+          { displayNumber: 1, id: 'q1', stem: 'Sample Stem', chosenText: 'Choice A', isCorrect: null }
+        ]
+      }
+    }
+  ]));
+  CampusQuiz.openStudentInspection(0);
+  const violHtml = document.getElementById('inspViolationsList').innerHTML;
+  assert(violHtml.includes('Exited Fullscreen'), "6.11a Violation list correctly maps FULLSCREEN_EXITED to 'Exited Fullscreen'");
+  assert(violHtml.includes('Tab switch / focus blur'), "6.11b Violation list correctly maps TAB_SWITCH to 'Tab switch / focus blur'");
+  const qBreakdownHtml = document.getElementById('inspBreakdownContainer').innerHTML;
+  assert(qBreakdownHtml.includes('SEALED') && qBreakdownHtml.includes('Sealed until Master Key applied'), "6.10b Sealed question card renders SEALED badge and 'Sealed until Master Key applied'");
+
+  // Test 6.12: Compact QR & Result Code Ingestion (Bug 8)
+  const compactPayload = {
+    v: 1,
+    q: "exam_cq_test",
+    r: "26A91A0577",
+    n: "K. Harika",
+    b: "CSE",
+    s: "Section B",
+    sc: 0,
+    mx: 5,
+    p: 0,
+    sw: 0,
+    fs: 0,
+    t: 120,
+    cs: "dummy_checksum_64chars_abcdef0123456789abcdef0123456789abcdef0123456789",
+    ans: { q1: "opt_2", q2: "opt_3" }
+  };
+  const compactStr = "CQ1:" + Buffer.from(unescape(encodeURIComponent(JSON.stringify(compactPayload)))).toString('base64');
+  const importSuccess = await CampusQuiz.importResultCode(compactStr);
+  assert(importSuccess === true, "6.12a CampusQuiz.importResultCode successfully parses and imports CQ1:... compact result string");
+  const allResults = CampusQuiz.getAllResults();
+  const importedRecord = allResults.find(r => r.rollNo === '26A91A0577');
+  assert(importedRecord !== undefined, "6.12b Imported student record appears in marksheet results");
+  assert(importedRecord.fullPayload && importedRecord.fullPayload.selectedOptions.q1 === 'opt_2', "6.12c Answers mapped by Question ID (q1 -> opt_2)");
+
+  // Test 6.13: verifyResultChecksum prioritizes facultyMasterSalt over payload salt (Bug 7)
+  const studentPayload = {
+    quizId: "exam_salt_test",
+    student: { rollNumber: "26A91A0500" },
+    timing: { submittedAt: "2026-11-05T00:00:00.000Z" },
+    selectedOptions: { q1: "opt_1" },
+    examSalt: "tampered_student_salt",
+    checksum: ""
+  };
+  const facultySecretSalt = "verified_faculty_secret_salt_2026";
+  studentPayload.checksum = await CampusQuiz.computeSignature("26A91A0500", "exam_salt_test", { q1: "opt_1" }, "2026-11-05T00:00:00.000Z", facultySecretSalt);
+
+  const isFacultySaltVerified = await CampusQuiz.verifyResultChecksum(studentPayload, facultySecretSalt);
+  assert(isFacultySaltVerified === true, "6.13 verifyResultChecksum prioritizes facultyMasterSalt over untrusted payload.examSalt");
 
   console.log("\n===============================================================================");
   console.log(`TOTAL TESTS: ${totalTests} | PASSED: ${passedTests} | FAILED: ${totalTests - passedTests}`);
