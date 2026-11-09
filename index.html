@@ -19,6 +19,17 @@
     })();
   </script>
 
+  <!-- Framing Isolation (Anti-Clickjacking Defense) -->
+  <script>
+    if (window.top !== window.self) {
+      try {
+        window.top.location = window.self.location;
+      } catch (e) {
+        window.location.replace("about:blank");
+      }
+    }
+  </script>
+
   <!-- PWA Standalone & Mobile App Meta Tags (Phase 6 Component D) -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -6200,12 +6211,10 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             if (enteredId === 'Avanthi#Faculty2026' || (enteredId === 'FACULTY_ADMIN' && enteredPin === 'Avanthi#Faculty2026')) {
               authorized = true;
             } else if (typeof prompt === 'function') {
-              const secret = prompt("Institutional Setup: Enter Faculty Secret (Avanthi#Faculty2026) to configure Master PIN on this workstation:");
+              const secret = prompt("Institutional Setup: Enter Faculty Authorization Secret to configure Master PIN on this workstation:");
               if (secret === 'Avanthi#Faculty2026') {
                 authorized = true;
               }
-            } else if (typeof confirm === 'function') {
-              authorized = confirm("Institutional Setup: Confirm establishing new private Master PIN on this workstation?");
             }
 
             if (!authorized) {
