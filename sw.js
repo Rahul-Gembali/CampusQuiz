@@ -1,5 +1,5 @@
-// CampusQuiz AI â€” Progressive Web App Service Worker (Offline-First Cache)
-const CACHE_NAME = 'campusquiz-ai-v1';
+// CampusQuiz AI — Progressive Web App Service Worker (Offline-First Cache v2)
+const CACHE_NAME = 'campusquiz-ai-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -37,10 +37,24 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
+  // Navigation requests: Network-first with cache fallback
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return networkResponse;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Static assets: Cache-first with background revalidation
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Fetch in background to revalidate cache if online
         fetch(event.request).then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             caches.open(CACHE_NAME).then((cache) => {
@@ -61,9 +75,8 @@ self.addEventListener('fetch', (event) => {
         });
         return networkResponse;
       }).catch(() => {
-        // Fallback for navigation requests to offline index.html
         if (event.request.mode === 'navigate') {
-          return caches.match('./index.html') || caches.match('./');
+          return caches.match('./index.html');
         }
       });
     })
