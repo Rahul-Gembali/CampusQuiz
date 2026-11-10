@@ -2490,6 +2490,10 @@
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
                 <span>Select .result.json Files</span>
               </button>
+              <button type="button" onclick="CampusQuiz.syncCloudSubmissions()" class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-lg shadow-emerald-700/10" title="Pull student submissions from Supabase Cloud">
+                <i data-lucide="cloud-download" class="w-3.5 h-3.5"></i>
+                <span>Sync Cloud Submissions</span>
+              </button>
             </div>
           </div>
 
@@ -4725,6 +4729,155 @@ int main() {
         return sha256Sync(String(str || '') + ":" + salt);
       }
 
+      // =========================================================================
+      // SUPABASE CLOUD SYNC CONFIGURATION & REST CLIENT (HYBRID ONLINE/OFFLINE)
+      // =========================================================================
+      const SUPABASE_CONFIG = {
+        url: 'https://syurkcbbgnzwitkktduq.supabase.co',
+        key: 'sb_publishable_MI5XYTARoLAjtbbhmOjo2w_GZouej72'
+      };
+
+      async function supabaseSyncStudent(student) {
+        if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.key || typeof fetch === 'undefined') return;
+        try {
+          const payload = {
+            roll_no: student.rollNo,
+            name: student.name,
+            year: student.year || '2nd Year (B.Tech)',
+            branch: student.branch || 'CSE',
+            section: student.section || 'Section A',
+            password_hash: student.passwordHash,
+            photo_url: student.photoUrl || null
+          };
+          await fetch(SUPABASE_CONFIG.url + '/rest/v1/students', {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_CONFIG.key,
+              'Authorization': 'Bearer ' + SUPABASE_CONFIG.key,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify(payload)
+          });
+        } catch (e) {
+          console.warn('Supabase background student sync note:', e);
+        }
+      }
+
+      async function supabaseFetchStudent(rollNo) {
+        if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.key || typeof fetch === 'undefined') return null;
+        try {
+          const res = await fetch(SUPABASE_CONFIG.url + '/rest/v1/students?roll_no=eq.' + encodeURIComponent(rollNo) + '&select=*', {
+            method: 'GET',
+            headers: {
+              'apikey': SUPABASE_CONFIG.key,
+              'Authorization': 'Bearer ' + SUPABASE_CONFIG.key
+            }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+              const row = data[0];
+              return {
+                rollNo: row.roll_no,
+                name: row.name,
+                year: row.year,
+                branch: row.branch,
+                section: row.section,
+                photoUrl: row.photo_url || '',
+                passwordHash: row.password_hash,
+                registeredAt: row.registered_at
+              };
+            }
+          }
+        } catch (e) {
+          console.warn('Supabase fetch note:', e);
+        }
+        return null;
+      }
+
+      async function supabaseSyncSubmission(subPayload) {
+        if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.key || typeof fetch === 'undefined') return;
+        try {
+          const payload = {
+            roll_no: subPayload.student?.rollNumber || state.loggedStudent?.rollNo || 'UNKNOWN',
+            exam_id: subPayload.quizId || subPayload.examId || 'CAMPUSQUIZ_EXAM',
+            score: subPayload.performance?.isSealed ? null : (subPayload.performance?.scoreObtained || 0),
+            percentage: subPayload.performance?.isSealed ? null : (subPayload.performance?.percentage || 0),
+            result_payload: subPayload
+          };
+          await fetch(SUPABASE_CONFIG.url + '/rest/v1/submissions', {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_CONFIG.key,
+              'Authorization': 'Bearer ' + SUPABASE_CONFIG.key,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+        } catch (e) {
+          console.warn('Supabase submission sync note:', e);
+        }
+      }
+
+      async function syncCloudSubmissions() {
+        if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.key || typeof fetch === 'undefined') {
+          showToast('Cloud Offline', 'Supabase endpoint is not configured.');
+          return;
+        }
+        try {
+          showToast('Syncing...', 'Fetching submissions from Supabase cloud...');
+          const res = await fetch(SUPABASE_CONFIG.url + '/rest/v1/submissions?select=*', {
+            method: 'GET',
+            headers: {
+              'apikey': SUPABASE_CONFIG.key,
+              'Authorization': 'Bearer ' + SUPABASE_CONFIG.key
+            }
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const rows = await res.json();
+          if (!Array.isArray(rows) || rows.length === 0) {
+            showToast('No Submissions', 'No submissions found in Supabase.');
+            return;
+          }
+
+          let importedCount = 0;
+          const stored = getStoredAttempts();
+          rows.forEach(r => {
+            if (r.result_payload) {
+              const payload = r.result_payload;
+              const exists = stored.some(a => (a.rollNo === (payload.student?.rollNumber || r.roll_no)) && (a.timestamp === payload.submittedAt || a.timestamp === r.submitted_at));
+              if (!exists) {
+                const stuBranch = (payload.student?.branch || 'CSE') + ' (' + (payload.student?.section || 'A') + ')';
+                const scoreStr = payload.performance?.isSealed ? 'Sealed' : ((payload.performance?.scoreObtained || 0) + ' / ' + (payload.performance?.totalQuestions || 5));
+                const percStr = payload.performance?.isSealed ? 'Sealed' : ((payload.performance?.percentage || 0) + '%');
+                saveAttemptToStorage({
+                  timestamp: payload.submittedAt || r.submitted_at,
+                  quizId: payload.quizId || r.exam_id,
+                  rollNo: payload.student?.rollNumber || r.roll_no,
+                  name: payload.student?.name || 'Unknown',
+                  branch: stuBranch,
+                  score: scoreStr,
+                  percentage: percStr,
+                  timeSpent: payload.performance?.timeSpent || 'N/A',
+                  tabSwitches: payload.security?.tabSwitchCount || 0,
+                  forcedSubmission: Boolean(payload.security?.forcedSubmission),
+                  seedHash: payload.seed || 'N/A',
+                  isSealed: Boolean(payload.isSealedExam),
+                  resultPayload: payload
+                });
+                importedCount++;
+              }
+            }
+          });
+
+          renderResultsHub();
+          showToast('Cloud Sync Complete', 'Imported ' + importedCount + ' new submissions from Supabase.');
+        } catch (e) {
+          console.error('Supabase sync submissions error:', e);
+          showToast('Sync Failed', 'Could not connect to Supabase: ' + (e.message || e));
+        }
+      }
       const state = {
         currentView: 'student-auth',
         activeFacultyTab: 'dashboard',
@@ -6934,7 +7087,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         }
       }
 
-      function loginStudent() {
+      async function loginStudent() {
         const rollInp = document.getElementById('inputRollNo');
         const passInp = document.getElementById('inputStudentPassword');
         const errEl = document.getElementById('studentLoginError');
@@ -6951,6 +7104,17 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
 
         const reg = getUserRegistry();
         let student = reg.students[rollVal];
+
+        if (!student && typeof supabaseFetchStudent === 'function') {
+          try {
+            const cloudStu = await supabaseFetchStudent(rollVal);
+            if (cloudStu) {
+              reg.students[rollVal] = cloudStu;
+              saveUserRegistry(reg);
+              student = cloudStu;
+            }
+          } catch (e) {}
+        }
 
         if (!student && rollVal === '26A91A0500') {
           reg.students['26A91A0500'] = {
@@ -7167,6 +7331,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
 
         reg.students[rollVal] = newStudent;
         saveUserRegistry(reg);
+        try { supabaseSyncStudent(newStudent); } catch (e) {}
 
         // Automatically log in
         state.loggedStudent = {
@@ -7362,6 +7527,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             reg.students[roll].passwordHash = hashPassword(newPass, roll);
           }
           saveUserRegistry(reg);
+          try { supabaseSyncStudent(reg.students[roll]); } catch (e) {}
         }
 
         state.loggedStudent.name = nameVal;
@@ -8235,6 +8401,8 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         state.lastResultPayload = resultPayload;
 
         renderResultView(resultPayload);
+
+        try { supabaseSyncSubmission(resultPayload); } catch (e) {}
 
         saveAttemptToStorage({
           timestamp: submittedAtISO,
@@ -12374,6 +12542,7 @@ Output Format Schema (STRICT JSON ONLY):
         isStudentEligibleForExam,
         updateCohortEligibilityUI,
         
+        syncCloudSubmissions,
         // Phase 3 Ingestion Handlers
         handlePdfDrop,
         handlePdfSelect,
