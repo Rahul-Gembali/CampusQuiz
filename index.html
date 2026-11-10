@@ -6595,9 +6595,14 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             photoUrl: DEFAULT_STUDENT_AVATAR,
             passwordHash: hashPassword('Avanthi#Student2026', '26A91A0500')
           };
-        } else if (!reg.students['26A91A0500'].photoUrl) {
-          reg.students['26A91A0500'].photoUrl = DEFAULT_STUDENT_AVATAR;
-          reg.students['26A91A0500'].year = '2nd Year (B.Tech)';
+        } else {
+          if (!reg.students['26A91A0500'].passwordHash) {
+            reg.students['26A91A0500'].passwordHash = hashPassword('Avanthi#Student2026', '26A91A0500');
+          }
+          if (!reg.students['26A91A0500'].photoUrl) {
+            reg.students['26A91A0500'].photoUrl = DEFAULT_STUDENT_AVATAR;
+            reg.students['26A91A0500'].year = '2nd Year (B.Tech)';
+          }
         }
 
         try {
@@ -6881,6 +6886,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
 
       // --- Universal Fast Evaluator Quick Fills ---
       function quickFillStudentDemo() {
+        setDemoMode(true);
         switchStudentAuthTab('login');
         const rollInp = document.getElementById('inputRollNo');
         const passInp = document.getElementById('inputStudentPassword');
