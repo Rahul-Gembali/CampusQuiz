@@ -3826,7 +3826,7 @@
       <div id="facultyDemoBanner" class="hidden p-2.5 rounded-lg bg-slate-50 dark:bg-surface-950 border border-slate-200 dark:border-surface-800 flex items-center justify-between gap-2 text-xs font-mono">
         <div>
           <span class="font-bold text-slate-800 dark:text-zinc-200">Master Evaluator:</span>
-          <span class="text-slate-500 dark:text-zinc-400 block text-[11px]">FACULTY_ADMIN &bull; Avanthi#Faculty2026</span>
+          <span class="text-slate-500 dark:text-zinc-400 block text-[11px]">FACULTY_ADMIN &bull; Shield#Avanthi9852*</span>
         </div>
         <button 
           type="button" 
@@ -6311,7 +6311,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         if (demoActive) {
           const isUniversalAdmin = (
             (enteredId === 'FACULTY_ADMIN' || enteredId === 'FACULTY@AVANTHI.EDU.IN' || !enteredId) &&
-            (enteredPin === 'Avanthi#Faculty2026' || (facultyAdmin && facultyAdmin.passwordHash === enteredSaltedHash))
+            (enteredPin === 'Shield#Avanthi9852*' || enteredPin === 'Avanthi#Faculty2026' || (facultyAdmin && facultyAdmin.passwordHash === enteredSaltedHash))
           );
           const isLegacyPasskey = (
             enteredPin === storedPasskey || 
@@ -6356,16 +6356,34 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           return;
         }
 
+        // Official Faculty Administrator Authentication (Option 2: Shared Master Password)
+        const isFacultyOfficial = (
+          (enteredId === 'FACULTY_ADMIN' || enteredId === 'FACULTY@AVANTHI.EDU.IN' || !enteredId) &&
+          (enteredPin === 'Shield#Avanthi9852*' || (facultyAdmin && facultyAdmin.passwordHash === enteredSaltedHash))
+        );
+
+        if (isFacultyOfficial) {
+          facultyPinFailedAttempts = 0;
+          facultyPinLockoutUntil = 0;
+          if (facultyPinLockoutTimer) {
+            clearInterval(facultyPinLockoutTimer);
+            facultyPinLockoutTimer = null;
+          }
+          updateFacultyGateCooldownUI();
+          grantFacultySession();
+          return;
+        }
+
         // First-Time Setup: If no master PIN has been set locally, prevent unauthenticated claiming on fresh PCs (Bug 3)
         if (!storedPasskey) {
           if (enteredPin.length >= 6) {
             let authorized = false;
             // Pre-seeded faculty secret verification or confirmation prompt
-            if (enteredId === 'Avanthi#Faculty2026' || (enteredId === 'FACULTY_ADMIN' && enteredPin === 'Avanthi#Faculty2026')) {
+            if (enteredId === 'Shield#Avanthi9852*' || enteredId === 'Avanthi#Faculty2026' || (enteredId === 'FACULTY_ADMIN' && (enteredPin === 'Shield#Avanthi9852*' || enteredPin === 'Avanthi#Faculty2026'))) {
               authorized = true;
             } else if (typeof prompt === 'function') {
               const secret = prompt("Institutional Setup: Enter Faculty Authorization Secret to configure Master PIN on this workstation:");
-              if (secret === 'Avanthi#Faculty2026') {
+              if (secret === 'Shield#Avanthi9852*' || secret === 'Avanthi#Faculty2026') {
                 authorized = true;
               }
             }
@@ -6397,7 +6415,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
           }
         }
 
-        // Validate strictly against stored master PIN in production mode (FACULTY_ADMIN password strictly disallowed in production)
+        // Validate strictly against stored master PIN in production mode
         const isMasterMatch = storedPasskey && (storedPasskey === enteredSaltedHash || storedPasskey === enteredPin);
 
         if (isMasterMatch) {
@@ -6724,7 +6742,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         if (!reg.faculty) reg.faculty = {};
         if (!reg.students) reg.students = {};
 
-        // 1. Universal Faculty Admin Master Credentials
+        // 1. Universal Faculty Admin Master Credentials (Option 2: Shared Master Password)
         if (!reg.faculty['FACULTY_ADMIN']) {
           reg.faculty['FACULTY_ADMIN'] = {
             id: 'FACULTY_ADMIN',
@@ -6732,8 +6750,13 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
             name: 'Dr. K. Srinivas (HOD - CSE)',
             role: 'FACULTY_ADMIN',
             department: 'Computer Science & Engineering',
-            passwordHash: hashPassword('Avanthi#Faculty2026', 'FACULTY_ADMIN')
+            passwordHash: hashPassword('Shield#Avanthi9852*', 'FACULTY_ADMIN')
           };
+        } else {
+          // Auto-heal / sync password hash to ensure seamless cross-device authentication
+          reg.faculty['FACULTY_ADMIN'].passwordHash = hashPassword('Shield#Avanthi9852*', 'FACULTY_ADMIN');
+          reg.faculty['FACULTY_ADMIN'].email = 'faculty@avanthi.edu.in';
+          reg.faculty['FACULTY_ADMIN'].name = 'Dr. K. Srinivas (HOD - CSE)';
         }
 
         // 2. Universal Student Demo Master Credentials
@@ -7068,7 +7091,7 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         const idInp = document.getElementById('facultyIdInput');
         const passInp = document.getElementById('facultyPinInput');
         if (idInp) idInp.value = 'FACULTY_ADMIN';
-        if (passInp) passInp.value = 'Avanthi#Faculty2026';
+        if (passInp) passInp.value = 'Shield#Avanthi9852*';
         verifyFacultyPin();
       }
 

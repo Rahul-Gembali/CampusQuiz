@@ -1,5 +1,5 @@
-// CampusQuiz AI — Progressive Web App Service Worker (Offline-First Cache v2)
-const CACHE_NAME = 'campusquiz-ai-v2';
+// CampusQuiz AI ï¿½ Progressive Web App Service Worker (Offline-First Cache v2)
+const CACHE_NAME = 'campusquiz-ai-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

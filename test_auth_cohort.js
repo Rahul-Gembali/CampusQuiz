@@ -132,8 +132,8 @@ function assert(condition, testName) {
 console.log("--- 1. UNIVERSAL MASTER CREDENTIALS & HASHING ---");
 
 // Test 1.1: Salted Password Hashing (Flaw 4)
-const facultyHash = CQ.hashPassword("Avanthi#Faculty2026", "FACULTY_ADMIN");
-assert(facultyHash === "e930f0e1e8f60851fba572ee42553e6cd8b8860410f145857839752c154c43f1", "1.1 SHA-256 for Avanthi#Faculty2026 matches salted hash");
+const facultyHash = CQ.hashPassword("Shield#Avanthi9852*", "FACULTY_ADMIN");
+assert(facultyHash === "f03058c03a61e65d5f67e356a3778b4528b73c007d031585612c9665bbc6e4f5", "1.1 SHA-256 for Shield#Avanthi9852* matches salted hash");
 
 const studentHash = CQ.hashPassword("Avanthi#Student2026", "26A91A0500");
 assert(studentHash === "f8c94ef2a30f3ee2c44ba5d2c58eb954115fef9d784316827784979859416c8a", "1.2 SHA-256 for Avanthi#Student2026 matches salted hash");
@@ -260,7 +260,14 @@ assert(!mockLocalStorage.getItem('campusquiz_logged_faculty'), "5.3b In producti
 
 // Test 5.3c: Error message does not leak credentials (Flaw 2)
 const errEl = document.getElementById('facultyPinError');
-assert(errEl && !errEl.textContent.includes('Avanthi#Faculty2026') && !errEl.textContent.includes('avanthi2026'), "5.3c Faculty error message contains no password hints or leaks");
+assert(errEl && !errEl.textContent.includes('Shield#Avanthi9852*') && !errEl.textContent.includes('Avanthi#Faculty2026') && !errEl.textContent.includes('avanthi2026'), "5.3c Faculty error message contains no password hints or leaks");
+
+// Test 5.3d: In production mode, official faculty credentials Shield#Avanthi9852* authenticate successfully
+document.getElementById('facultyIdInput').value = 'FACULTY_ADMIN';
+document.getElementById('facultyPinInput').value = 'Shield#Avanthi9852*';
+CQ.verifyFacultyPin();
+assert(mockLocalStorage.getItem('campusquiz_logged_faculty') !== null, "5.3d In production mode, official faculty credentials Shield#Avanthi9852* authenticate successfully");
+CQ.lockFacultyMode();
 
 // Test 5.4: Demo Mode Passkey Acceptance (Flaw 1)
 CQ.setDemoMode(true);
