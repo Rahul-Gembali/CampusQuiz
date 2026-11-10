@@ -6792,8 +6792,23 @@ UNIT II: RECURSION, SEARCHING & ASYMPTOTIC COMPLEXITY
         return state.loggedStudent;
       }
 
+      function syncAllLocalStudentsToCloud() {
+        if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.key || typeof fetch === 'undefined') return;
+        try {
+          const reg = getUserRegistry();
+          if (reg && reg.students) {
+            Object.values(reg.students).forEach(s => {
+              if (s && s.rollNo && s.rollNo !== '26A91A0500') {
+                supabaseSyncStudent(s);
+              }
+            });
+          }
+        } catch (e) {}
+      }
+
       function checkActiveAuthSession() {
         initUserRegistry();
+        try { syncAllLocalStudentsToCloud(); } catch (e) {}
 
         // 1. Check Faculty Session
         try {
